@@ -1,0 +1,5205 @@
+{
+  "apifoxCli": "1.1.0",
+  "info": {
+    "name": "大学生考研 AI 导学系统 · 本地后端联调",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "默认本地样例账号。业务成功与模型未配置失败分支都作显式断言。文件和 SSE 使用补充专项测试。"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8080"
+    },
+    {
+      "key": "loginName",
+      "value": "student"
+    },
+    {
+      "key": "password",
+      "value": "LocalStudy2026!"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.collectionVariables.set(\"studyEnd\",new Date(Date.now()-60000).toISOString());",
+          "pm.collectionVariables.set(\"studyStart\",new Date(Date.now()-1860000).toISOString());"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "11模块业务流程与错误分支",
+      "item": [
+        {
+          "id": "1",
+          "name": "获取 CSRF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/session/csrf"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"csrf\",d.token);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 1
+          }
+        },
+        {
+          "id": "2",
+          "name": "账号登录",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/session/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"loginName\": \"{{loginName}}\", \"password\": \"{{password}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 2
+          }
+        },
+        {
+          "id": "3",
+          "name": "登录后更新 CSRF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/session/csrf"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"csrf\",d.token);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 3
+          }
+        },
+        {
+          "id": "4",
+          "name": "读取档案版本",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/profile"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"profileVersion\",d.version);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 4
+          }
+        },
+        {
+          "id": "5",
+          "name": "更新学习档案",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/profile",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"undergraduateMajor\": \"软件工程\", \"targetProgramId\": \"20000000-0000-4000-8000-000000000001\", \"targetDate\": \"2026-12-12\", \"dailyMinutes\": 120, \"timezone\": \"Asia/Shanghai\", \"baseline\": [], \"version\": {{profileVersion}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"profileVersion\",d.version);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 5
+          }
+        },
+        {
+          "id": "6",
+          "name": "禁止由前端指定 userId",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/schools/programs?year=2027&userId=20000000-0000-4000-8000-000000000001"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\",()=>pm.response.to.have.status(400));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"错误 data=null\",()=>pm.expect(r.data).to.eql(null));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 6
+          }
+        },
+        {
+          "id": "7",
+          "name": "M01 数字人资源",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/avatar/assets"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 7
+          }
+        },
+        {
+          "id": "8",
+          "name": "M01 读取偏好",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/avatar/preferences"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"avatarVersion\",d.version);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 8
+          }
+        },
+        {
+          "id": "9",
+          "name": "M01 切换严格督学模式",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/avatar/preferences",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"shapeId\": \"11000000-0000-4000-8000-000000000001\", \"mode\": \"strict\", \"voice\": \"zh-CN\", \"reminderTime\": \"20:00\", \"version\": {{avatarVersion}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 9
+          }
+        },
+        {
+          "id": "10",
+          "name": "M01 今日打卡",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/avatar/checkins",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"localDate\": \"2026-10-13\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\",()=>pm.response.to.have.status(201));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 10
+          }
+        },
+        {
+          "id": "11",
+          "name": "M01 督学",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/avatar/supervision?date=2026-10-13"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 11
+          }
+        },
+        {
+          "id": "12",
+          "name": "M01 提醒设置",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/avatar/reminders"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"reminderVersion\",d.version);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 12
+          }
+        },
+        {
+          "id": "13",
+          "name": "M01 保存提醒",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/avatar/reminders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"enabled\": true, \"time\": \"20:00\", \"mode\": \"gentle\", \"version\": {{reminderVersion}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 13
+          }
+        },
+        {
+          "id": "14",
+          "name": "M01 模型未配置分支",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/avatar/interactions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"text\": \"我有点紧张\", \"contextId\": \"20000000-0000-4000-8000-000000000001\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 202\",()=>pm.response.to.have.status(202));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"jobId\",d.jobId);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 14
+          }
+        },
+        {
+          "id": "15",
+          "name": "M01 模型未配置分支：轮询 1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 15
+          }
+        },
+        {
+          "id": "16",
+          "name": "M01 模型未配置分支：轮询 2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 16
+          }
+        },
+        {
+          "id": "17",
+          "name": "M01 模型未配置分支：轮询 3",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 17
+          }
+        },
+        {
+          "id": "18",
+          "name": "M01 模型未配置分支：轮询 4",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.test(\"任务终态\",()=>pm.expect(d.status).to.eql(\"failed_retryable\"));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 18
+          }
+        },
+        {
+          "id": "19",
+          "name": "M02 院校列表",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/schools/programs?year=2027"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 19
+          }
+        },
+        {
+          "id": "20",
+          "name": "M02 按地区难度推荐",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/schools/recommendations",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"undergraduateMajor\": \"软件工程\", \"regions\": [\"北京\"], \"year\": 2027, \"estimatedScore\": 350, \"difficulty\": \"medium\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 20
+          }
+        },
+        {
+          "id": "21",
+          "name": "M02 院校统计",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/schools/programs/20000000-0000-4000-8000-000000000001/facts?year=2027"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 21
+          }
+        },
+        {
+          "id": "22",
+          "name": "M02 双校比较",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/schools/comparisons",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"programIds\": [\"20000000-0000-4000-8000-000000000001\", \"20000000-0000-4000-8000-000000000002\"], \"year\": 2027}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 22
+          }
+        },
+        {
+          "id": "23",
+          "name": "M02 评估任务",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/schools/evaluations",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"programId\": \"20000000-0000-4000-8000-000000000001\", \"estimatedScore\": 350, \"profileVersion\": {{profileVersion}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 202\",()=>pm.response.to.have.status(202));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"jobId\",d.jobId);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 23
+          }
+        },
+        {
+          "id": "24",
+          "name": "M02 评估：轮询 1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 24
+          }
+        },
+        {
+          "id": "25",
+          "name": "M02 评估：轮询 2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 25
+          }
+        },
+        {
+          "id": "26",
+          "name": "M02 评估：轮询 3",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 26
+          }
+        },
+        {
+          "id": "27",
+          "name": "M02 评估：轮询 4",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"evaluationId\",d.result.id);",
+                  "pm.test(\"任务终态\",()=>pm.expect(d.status).to.eql(\"completed\"));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 27
+          }
+        },
+        {
+          "id": "28",
+          "name": "M02 数据不足概率为空",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/schools/evaluations/{{evaluationId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.test(\"不虚构概率\",()=>pm.expect(d.probability).to.eql(null));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 28
+          }
+        },
+        {
+          "id": "29",
+          "name": "M03 知识树",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/public-courses/knowledge?subject=math&examType=math1&year=2027"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 29
+          }
+        },
+        {
+          "id": "30",
+          "name": "M03 高频考点",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/public-courses/exam-points?subject=math&type=highFrequency"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 30
+          }
+        },
+        {
+          "id": "31",
+          "name": "M03 知识点讲解",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/public-courses/explanations",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"knowledgeId\": \"40000000-0000-4000-8000-000000000001\", \"level\": \"basic\", \"version\": 1}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 202\",()=>pm.response.to.have.status(202));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"jobId\",d.jobId);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 31
+          }
+        },
+        {
+          "id": "32",
+          "name": "M03 知识点讲解：轮询 1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 32
+          }
+        },
+        {
+          "id": "33",
+          "name": "M03 知识点讲解：轮询 2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 33
+          }
+        },
+        {
+          "id": "34",
+          "name": "M03 知识点讲解：轮询 3",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 34
+          }
+        },
+        {
+          "id": "35",
+          "name": "M03 知识点讲解：轮询 4",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.test(\"任务终态\",()=>pm.expect(d.status).to.eql(\"failed_retryable\"));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 35
+          }
+        },
+        {
+          "id": "36",
+          "name": "M03 英语作文",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/public-courses/english/tasks",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"type\": \"composition\", \"content\": \"I study computer science.\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 202\",()=>pm.response.to.have.status(202));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"jobId\",d.jobId);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 36
+          }
+        },
+        {
+          "id": "37",
+          "name": "M03 英语作文：轮询 1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 37
+          }
+        },
+        {
+          "id": "38",
+          "name": "M03 英语作文：轮询 2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 38
+          }
+        },
+        {
+          "id": "39",
+          "name": "M03 英语作文：轮询 3",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 39
+          }
+        },
+        {
+          "id": "40",
+          "name": "M03 英语作文：轮询 4",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.test(\"任务终态\",()=>pm.expect(d.status).to.eql(\"failed_retryable\"));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 40
+          }
+        },
+        {
+          "id": "41",
+          "name": "M03 政治大纲",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/public-courses/politics/tasks",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"type\": \"syllabus\", \"year\": 2027}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 202\",()=>pm.response.to.have.status(202));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"jobId\",d.jobId);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 41
+          }
+        },
+        {
+          "id": "42",
+          "name": "M03 政治大纲：轮询 1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 42
+          }
+        },
+        {
+          "id": "43",
+          "name": "M03 政治大纲：轮询 2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 43
+          }
+        },
+        {
+          "id": "44",
+          "name": "M03 政治大纲：轮询 3",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 44
+          }
+        },
+        {
+          "id": "45",
+          "name": "M03 政治大纲：轮询 4",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.test(\"任务终态\",()=>pm.expect(d.status).to.eql(\"failed_retryable\"));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 45
+          }
+        },
+        {
+          "id": "46",
+          "name": "M03 数学引导",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/public-courses/math/tasks",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"type\": \"guidance\", \"content\": \"如何理解导数？\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 202\",()=>pm.response.to.have.status(202));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"jobId\",d.jobId);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 46
+          }
+        },
+        {
+          "id": "47",
+          "name": "M03 数学引导：轮询 1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 47
+          }
+        },
+        {
+          "id": "48",
+          "name": "M03 数学引导：轮询 2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 48
+          }
+        },
+        {
+          "id": "49",
+          "name": "M03 数学引导：轮询 3",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 49
+          }
+        },
+        {
+          "id": "50",
+          "name": "M03 数学引导：轮询 4",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.test(\"任务终态\",()=>pm.expect(d.status).to.eql(\"failed_retryable\"));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 50
+          }
+        },
+        {
+          "id": "51",
+          "name": "M04 专业课科目",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/professional-courses/subjects?discipline=computer&programId=20000000-0000-4000-8000-000000000001&year=2027"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 51
+          }
+        },
+        {
+          "id": "52",
+          "name": "M04 专业知识树",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/professional-courses/knowledge?subjectId=30000000-0000-4000-8000-000000000004&bookEdition=local-v1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 52
+          }
+        },
+        {
+          "id": "53",
+          "name": "M04 题目列表",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/professional-courses/past-questions?subjectId=30000000-0000-4000-8000-000000000004&year=2026"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"professionalQuestionVersion\",d.items[0].versionId);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 53
+          }
+        },
+        {
+          "id": "54",
+          "name": "M04 参考书章节讲解",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/professional-courses/book-explanations",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"bookId\": \"70000000-0000-4000-8000-000000000001\", \"chapterId\": \"71000000-0000-4000-8000-000000000001\", \"edition\": \"local-v1\", \"question\": \"什么是顺序表？\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 202\",()=>pm.response.to.have.status(202));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"jobId\",d.jobId);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 54
+          }
+        },
+        {
+          "id": "55",
+          "name": "M04 参考书章节讲解：轮询 1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 55
+          }
+        },
+        {
+          "id": "56",
+          "name": "M04 参考书章节讲解：轮询 2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 56
+          }
+        },
+        {
+          "id": "57",
+          "name": "M04 参考书章节讲解：轮询 3",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 57
+          }
+        },
+        {
+          "id": "58",
+          "name": "M04 参考书章节讲解：轮询 4",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.test(\"任务终态\",()=>pm.expect(d.status).to.eql(\"failed_retryable\"));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 58
+          }
+        },
+        {
+          "id": "59",
+          "name": "M04 真题思路",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/professional-courses/explanations",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"questionVersionId\": \"{{professionalQuestionVersion}}\", \"level\": \"basic\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 202\",()=>pm.response.to.have.status(202));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"jobId\",d.jobId);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 59
+          }
+        },
+        {
+          "id": "60",
+          "name": "M04 真题思路：轮询 1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 60
+          }
+        },
+        {
+          "id": "61",
+          "name": "M04 真题思路：轮询 2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 61
+          }
+        },
+        {
+          "id": "62",
+          "name": "M04 真题思路：轮询 3",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 62
+          }
+        },
+        {
+          "id": "63",
+          "name": "M04 真题思路：轮询 4",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.test(\"任务终态\",()=>pm.expect(d.status).to.eql(\"failed_retryable\"));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 63
+          }
+        },
+        {
+          "id": "64",
+          "name": "M04 历史题库频率",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/professional-courses/predictions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"subjectId\": \"30000000-0000-4000-8000-000000000004\", \"targetYear\": 2027, \"historyRange\": {\"fromYear\": 2020, \"toYear\": 2026}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 202\",()=>pm.response.to.have.status(202));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"jobId\",d.jobId);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 64
+          }
+        },
+        {
+          "id": "65",
+          "name": "M04 频率分析：轮询 1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 65
+          }
+        },
+        {
+          "id": "66",
+          "name": "M04 频率分析：轮询 2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 66
+          }
+        },
+        {
+          "id": "67",
+          "name": "M04 频率分析：轮询 3",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 67
+          }
+        },
+        {
+          "id": "68",
+          "name": "M04 频率分析：轮询 4",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.test(\"任务终态\",()=>pm.expect(d.status).to.eql(\"completed\"));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 68
+          }
+        },
+        {
+          "id": "69",
+          "name": "M05 创建答疑会话",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/qa/conversations",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"subjectId\": \"30000000-0000-4000-8000-000000000001\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\",()=>pm.response.to.have.status(201));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"conversationId\",d.id);",
+                  "pm.collectionVariables.set(\"contextVersion\",d.contextVersion);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 69
+          }
+        },
+        {
+          "id": "70",
+          "name": "M05 文字问题",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/qa/conversations/{{conversationId}}/messages",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"subjectId\": \"30000000-0000-4000-8000-000000000001\", \"text\": \"如何理解导数？\", \"requestId\": \"{{requestKey}}\", \"contextVersion\": {{contextVersion}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 202\",()=>pm.response.to.have.status(202));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"jobId\",d.jobId);",
+                  "pm.collectionVariables.set(\"messageId\",d.messageId);",
+                  "pm.collectionVariables.set(\"contextVersion\",d.contextVersion);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 70
+          }
+        },
+        {
+          "id": "71",
+          "name": "M05 未配置模型：轮询 1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 71
+          }
+        },
+        {
+          "id": "72",
+          "name": "M05 未配置模型：轮询 2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 72
+          }
+        },
+        {
+          "id": "73",
+          "name": "M05 未配置模型：轮询 3",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 73
+          }
+        },
+        {
+          "id": "74",
+          "name": "M05 未配置模型：轮询 4",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.test(\"任务终态\",()=>pm.expect(d.status).to.eql(\"failed_retryable\"));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 74
+          }
+        },
+        {
+          "id": "75",
+          "name": "M05 消息历史",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/qa/conversations/{{conversationId}}/messages"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 75
+          }
+        },
+        {
+          "id": "76",
+          "name": "M05 查看失败消息",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/qa/messages/{{messageId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 76
+          }
+        },
+        {
+          "id": "77",
+          "name": "M06 创建练习",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/practice/sessions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"type\": \"daily\", \"subjectId\": \"30000000-0000-4000-8000-000000000001\", \"knowledgeId\": null, \"difficulty\": \"medium\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\",()=>pm.response.to.have.status(201));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"practiceId\",d.id);",
+                  "pm.collectionVariables.set(\"questionVersionId\",d.questions[0].versionId);",
+                  "pm.collectionVariables.set(\"questionId\",d.questions[0].id);",
+                  "pm.test(\"题目不泄漏答案\",()=>pm.expect(JSON.stringify(d)).not.to.include(\"correctAnswer\"));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 77
+          }
+        },
+        {
+          "id": "78",
+          "name": "M06 恢复练习",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/practice/sessions/{{practiceId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 78
+          }
+        },
+        {
+          "id": "79",
+          "name": "M06 提交错误答案",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/practice/sessions/{{practiceId}}/attempts",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"questionVersionId\": \"{{questionVersionId}}\", \"answer\": {\"kind\": \"singleChoice\", \"optionId\": \"A\"}, \"requestId\": \"{{requestKey}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\",()=>pm.response.to.have.status(201));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"wrongId\",d.wrongItemId);",
+                  "pm.test(\"批改错误作答\",()=>pm.expect(d.correct).to.eql(false));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 79
+          }
+        },
+        {
+          "id": "80",
+          "name": "M06 错题列表",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/practice/wrong-items?subjectId=30000000-0000-4000-8000-000000000001"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 80
+          }
+        },
+        {
+          "id": "81",
+          "name": "M06 错题作答历史",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/practice/wrong-items/{{wrongId}}/history"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 81
+          }
+        },
+        {
+          "id": "82",
+          "name": "M06 同类题",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/practice/similar-questions?questionId={{questionId}}&knowledgeId=40000000-0000-4000-8000-000000000001&difficulty=medium"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 82
+          }
+        },
+        {
+          "id": "83",
+          "name": "M06 掌握进度",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/practice/knowledge-progress?subjectId=30000000-0000-4000-8000-000000000001&timeRange=all"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 83
+          }
+        },
+        {
+          "id": "84",
+          "name": "M07 生成草稿",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/plans",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"profileVersion\": {{profileVersion}}, \"targetDate\": \"2026-10-27\", \"dailyMinutes\": 120, \"baseline\": [{\"subjectId\": \"30000000-0000-4000-8000-000000000001\", \"score\": 60, \"maxScore\": 150}]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 202\",()=>pm.response.to.have.status(202));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"jobId\",d.jobId);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 84
+          }
+        },
+        {
+          "id": "85",
+          "name": "M07 草稿生成：轮询 1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 85
+          }
+        },
+        {
+          "id": "86",
+          "name": "M07 草稿生成：轮询 2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 86
+          }
+        },
+        {
+          "id": "87",
+          "name": "M07 草稿生成：轮询 3",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 87
+          }
+        },
+        {
+          "id": "88",
+          "name": "M07 草稿生成：轮询 4",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"planId\",d.result.plan.id);",
+                  "pm.collectionVariables.set(\"version\",d.result.plan.version);",
+                  "pm.collectionVariables.set(\"taskId\",d.result.plan.tasks[0].id);",
+                  "pm.collectionVariables.set(\"taskVersion\",d.result.plan.tasks[0].version);",
+                  "pm.test(\"任务终态\",()=>pm.expect(d.status).to.eql(\"completed\"));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 88
+          }
+        },
+        {
+          "id": "89",
+          "name": "M07 查看周计划",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/plans/{{planId}}?view=week&date=2026-10-13"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 89
+          }
+        },
+        {
+          "id": "90",
+          "name": "M07 修改草稿任务",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/plans/{{planId}}/tasks/{{taskId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"content\": \"导数专项复习\", \"version\": {{taskVersion}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"taskVersion\",d.version);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 90
+          }
+        },
+        {
+          "id": "91",
+          "name": "M07 刷新计划版本",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/plans/{{planId}}?view=week&date=2026-10-13"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"version\",d.version);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 91
+          }
+        },
+        {
+          "id": "92",
+          "name": "M07 确认生效",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/plans/{{planId}}/confirm",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"version\": {{version}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 92
+          }
+        },
+        {
+          "id": "93",
+          "name": "M07 完成任务",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/plans/{{planId}}/tasks/{{taskId}}/complete",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"version\": {{taskVersion}}, \"eventId\": \"{{requestKey}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 93
+          }
+        },
+        {
+          "id": "94",
+          "name": "M07 进度",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/plans/{{planId}}/progress?timeRange=all"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"progressVersion\",d.version);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 94
+          }
+        },
+        {
+          "id": "95",
+          "name": "M07 动态调整草稿",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/plans/{{planId}}/adjustments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reason\": \"调整每日时间预算\", \"timeBudget\": 90, \"progressVersion\": {{progressVersion}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 202\",()=>pm.response.to.have.status(202));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"jobId\",d.jobId);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 95
+          }
+        },
+        {
+          "id": "96",
+          "name": "M07 调整完成：轮询 1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 96
+          }
+        },
+        {
+          "id": "97",
+          "name": "M07 调整完成：轮询 2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 97
+          }
+        },
+        {
+          "id": "98",
+          "name": "M07 调整完成：轮询 3",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 98
+          }
+        },
+        {
+          "id": "99",
+          "name": "M07 调整完成：轮询 4",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.test(\"任务终态\",()=>pm.expect(d.status).to.eql(\"completed\"));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 99
+          }
+        },
+        {
+          "id": "100",
+          "name": "M08 试卷列表",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/mock-exams/papers?subject=math&examType=math1&year=2027"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 100
+          }
+        },
+        {
+          "id": "101",
+          "name": "M08 开始模考",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/mock-exams/sessions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"paperVersionId\": \"61000000-0000-4000-8000-000000000001\", \"requestId\": \"{{requestKey}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\",()=>pm.response.to.have.status(201));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"examId\",d.id);",
+                  "pm.collectionVariables.set(\"examQuestionId\",d.questions[0].id);",
+                  "pm.collectionVariables.set(\"examVersion\",d.version);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 101
+          }
+        },
+        {
+          "id": "102",
+          "name": "M08 保存作答",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/mock-exams/sessions/{{examId}}/answers/{{examQuestionId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"answer\": {\"kind\": \"singleChoice\", \"optionId\": \"B\"}, \"version\": 0, \"requestId\": \"{{requestKey}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 102
+          }
+        },
+        {
+          "id": "103",
+          "name": "M08 恢复服务端会话",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/mock-exams/sessions/{{examId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"examVersion\",d.version);",
+                  "pm.test(\"保存后可恢复\",()=>pm.expect(d.answers.length).to.eql(1));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 103
+          }
+        },
+        {
+          "id": "104",
+          "name": "M08 交卷",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/mock-exams/sessions/{{examId}}/submit",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"version\": {{examVersion}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 202\",()=>pm.response.to.have.status(202));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"jobId\",d.jobId);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 104
+          }
+        },
+        {
+          "id": "105",
+          "name": "M08 客观题批改：轮询 1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 105
+          }
+        },
+        {
+          "id": "106",
+          "name": "M08 客观题批改：轮询 2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 106
+          }
+        },
+        {
+          "id": "107",
+          "name": "M08 客观题批改：轮询 3",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 107
+          }
+        },
+        {
+          "id": "108",
+          "name": "M08 客观题批改：轮询 4",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.test(\"任务终态\",()=>pm.expect(d.status).to.eql(\"completed\"));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 108
+          }
+        },
+        {
+          "id": "109",
+          "name": "M08 成绩",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/mock-exams/sessions/{{examId}}/result"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"scoreSnapshotId\",d.scoreSnapshotId);",
+                  "pm.test(\"客观题得分为5\",()=>pm.expect(d.totalScore).to.eql(5));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 109
+          }
+        },
+        {
+          "id": "110",
+          "name": "M08 匿名排名",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/mock-exams/papers/60000000-0000-4000-8000-000000000001/ranking?paperVersionId=61000000-0000-4000-8000-000000000001"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 110
+          }
+        },
+        {
+          "id": "111",
+          "name": "刷新档案版本",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/profile"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"profileVersion\",d.version);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 111
+          }
+        },
+        {
+          "id": "112",
+          "name": "M08 基于快照估分",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/mock-exams/estimates",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"scoreSnapshotIds\": [\"{{scoreSnapshotId}}\"], \"profileVersion\": {{profileVersion}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 202\",()=>pm.response.to.have.status(202));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"jobId\",d.jobId);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 112
+          }
+        },
+        {
+          "id": "113",
+          "name": "M08 估分：轮询 1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 113
+          }
+        },
+        {
+          "id": "114",
+          "name": "M08 估分：轮询 2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 114
+          }
+        },
+        {
+          "id": "115",
+          "name": "M08 估分：轮询 3",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 115
+          }
+        },
+        {
+          "id": "116",
+          "name": "M08 估分：轮询 4",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.test(\"任务终态\",()=>pm.expect(d.status).to.eql(\"completed\"));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 116
+          }
+        },
+        {
+          "id": "117",
+          "name": "M09 创建英语复试",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/interviews",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"programId\": \"20000000-0000-4000-8000-000000000001\", \"mode\": \"english\", \"language\": \"en-US\", \"duration\": 300, \"consent\": true}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\",()=>pm.response.to.have.status(201));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"interviewId\",d.id);",
+                  "pm.collectionVariables.set(\"interviewVersion\",d.version);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 117
+          }
+        },
+        {
+          "id": "118",
+          "name": "M09 复试作答反馈",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/interviews/{{interviewId}}/turns",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"text\": \"I study software engineering.\", \"requestId\": \"{{requestKey}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 202\",()=>pm.response.to.have.status(202));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"jobId\",d.jobId);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 118
+          }
+        },
+        {
+          "id": "119",
+          "name": "M09 复试作答反馈：轮询 1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 119
+          }
+        },
+        {
+          "id": "120",
+          "name": "M09 复试作答反馈：轮询 2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 120
+          }
+        },
+        {
+          "id": "121",
+          "name": "M09 复试作答反馈：轮询 3",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 121
+          }
+        },
+        {
+          "id": "122",
+          "name": "M09 复试作答反馈：轮询 4",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.test(\"任务终态\",()=>pm.expect(d.status).to.eql(\"failed_retryable\"));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 122
+          }
+        },
+        {
+          "id": "123",
+          "name": "M09 结束并生成报告",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/interviews/{{interviewId}}/finish",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"version\": {{interviewVersion}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 202\",()=>pm.response.to.have.status(202));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"jobId\",d.jobId);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 123
+          }
+        },
+        {
+          "id": "124",
+          "name": "M09 结束并生成报告：轮询 1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 124
+          }
+        },
+        {
+          "id": "125",
+          "name": "M09 结束并生成报告：轮询 2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 125
+          }
+        },
+        {
+          "id": "126",
+          "name": "M09 结束并生成报告：轮询 3",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 126
+          }
+        },
+        {
+          "id": "127",
+          "name": "M09 结束并生成报告：轮询 4",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.test(\"任务终态\",()=>pm.expect(d.status).to.eql(\"failed_retryable\"));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 127
+          }
+        },
+        {
+          "id": "128",
+          "name": "M09 查看评分未配置状态",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/interviews/{{interviewId}}/result"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.test(\"不伪造评分\",()=>pm.expect(d.status).to.eql(\"failed_retryable\"));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 128
+          }
+        },
+        {
+          "id": "129",
+          "name": "M09 自我介绍批改",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/interviews/self-introduction-reviews",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"content\": \"我学习软件工程。\", \"language\": \"zh-CN\", \"programId\": \"20000000-0000-4000-8000-000000000001\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 202\",()=>pm.response.to.have.status(202));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"jobId\",d.jobId);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 129
+          }
+        },
+        {
+          "id": "130",
+          "name": "M09 自我介绍批改：轮询 1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 130
+          }
+        },
+        {
+          "id": "131",
+          "name": "M09 自我介绍批改：轮询 2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 131
+          }
+        },
+        {
+          "id": "132",
+          "name": "M09 自我介绍批改：轮询 3",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 132
+          }
+        },
+        {
+          "id": "133",
+          "name": "M09 自我介绍批改：轮询 4",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/jobs/{{jobId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.test(\"任务终态\",()=>pm.expect(d.status).to.eql(\"failed_retryable\"));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 133
+          }
+        },
+        {
+          "id": "134",
+          "name": "M09 面试礼仪",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/interviews/guidance?type=etiquette&programId=20000000-0000-4000-8000-000000000001"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 134
+          }
+        },
+        {
+          "id": "135",
+          "name": "M10 学习事件",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{requestKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/analytics/study-events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"eventId\": \"{{requestKey}}\", \"type\": \"reading\", \"startAt\": \"{{studyStart}}\", \"endAt\": \"{{studyEnd}}\", \"taskId\": null, \"focusSelfReport\": 0.8}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"requestKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\",()=>pm.response.to.have.status(201));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 135
+          }
+        },
+        {
+          "id": "136",
+          "name": "M10 仪表盘",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/analytics/dashboard?from=2026-10-13&to=2026-10-13&timezone=Asia%2FShanghai"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 136
+          }
+        },
+        {
+          "id": "137",
+          "name": "M10 薄弱点雷达",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/analytics/weakness-radar?subjectId=30000000-0000-4000-8000-000000000001&from=2026-10-13&to=2026-10-13"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 137
+          }
+        },
+        {
+          "id": "138",
+          "name": "M10 周报",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/analytics/weekly-reports?weekStart=2026-10-12&timezone=Asia%2FShanghai"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 138
+          }
+        },
+        {
+          "id": "139",
+          "name": "M11 通知列表",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/news/notices?year=2027"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"noticeId\",d.items[0].id);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 139
+          }
+        },
+        {
+          "id": "140",
+          "name": "M11 通知版本对比",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/news/notices/{{noticeId}}/changes?fromVersion=1&toVersion=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 140
+          }
+        },
+        {
+          "id": "141",
+          "name": "M11 关注设置",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/news/follows"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"followVersion\",d.version);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 141
+          }
+        },
+        {
+          "id": "142",
+          "name": "M11 保存院校关注",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/news/follows",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"programIds\": [\"20000000-0000-4000-8000-000000000001\"], \"region\": null, \"year\": 2027, \"version\": {{followVersion}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 142
+          }
+        },
+        {
+          "id": "143",
+          "name": "M11 考研时间提醒",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/news/milestones?year=2027"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.test(\"未核实日期为空\",()=>pm.expect(d.items.every(x=>x.startsAt===null)).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 143
+          }
+        },
+        {
+          "id": "144",
+          "name": "M11 通知中心",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/news/notifications?unreadOnly=true"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"notificationId\",d.items[0].id);",
+                  "pm.collectionVariables.set(\"notificationVersion\",d.items[0].version);"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 144
+          }
+        },
+        {
+          "id": "145",
+          "name": "M11 标记已读",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/news/notifications/{{notificationId}}/read",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"version\": {{notificationVersion}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"契约 code=OK\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 145
+          }
+        },
+        {
+          "id": "146",
+          "name": "注销",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/session/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\",()=>pm.response.to.have.status(204));",
+                  "pm.test(\"204 无响应体\",()=>pm.expect(pm.response.text()).to.eql(\"\"));"
+                ]
+              }
+            }
+          ],
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 146
+          }
+        }
+      ]
+    }
+  ]
+}

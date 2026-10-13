@@ -1,0 +1,538 @@
+{
+  "date": "2026-10-13",
+  "backendProject": "D:\\STUDY\\UniversityAIUser",
+  "frontendProject": "C:/Users/jack/Desktop/UniversityAIUserPage",
+  "operationCount": 81,
+  "schemaCount": 216,
+  "contractsUnchanged": true,
+  "databaseProfile": "local H2 file; tests H2 in-memory",
+  "mysqlConfigured": false,
+  "mysqlMigrationExecuted": false,
+  "schemaTableCount": 37,
+  "realModelConfigured": false,
+  "externalModelTested": false,
+  "nginxDeployment": false,
+  "testSuites": [
+    {
+      "name": "com.kaoyan.ai.BackendContractTests",
+      "tests": "17",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "18.836"
+    },
+    {
+      "name": "com.kaoyan.ai.BackendModelFlowTests",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "3.656"
+    },
+    {
+      "name": "com.kaoyan.ai.KaoyanAiApplicationTests",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.4"
+    }
+  ],
+  "totalTests": 21,
+  "controllerRequestLogCount": 276,
+  "operations": {
+    "op001": {
+      "method": "get",
+      "path": "/api/v1/session/csrf",
+      "loggedRequests": 42,
+      "technicalDirectTest": false
+    },
+    "op002": {
+      "method": "post",
+      "path": "/api/v1/session/login",
+      "loggedRequests": 23,
+      "technicalDirectTest": false
+    },
+    "op003": {
+      "method": "post",
+      "path": "/api/v1/session/logout",
+      "loggedRequests": 2,
+      "technicalDirectTest": false
+    },
+    "op004": {
+      "method": "get",
+      "path": "/api/v1/profile",
+      "loggedRequests": 8,
+      "technicalDirectTest": false
+    },
+    "op005": {
+      "method": "put",
+      "path": "/api/v1/profile",
+      "loggedRequests": 3,
+      "technicalDirectTest": false
+    },
+    "op006": {
+      "method": "post",
+      "path": "/api/v1/files",
+      "loggedRequests": 0,
+      "technicalDirectTest": true
+    },
+    "op007": {
+      "method": "get",
+      "path": "/api/v1/files/{id}",
+      "loggedRequests": 1,
+      "technicalDirectTest": true
+    },
+    "op008": {
+      "method": "delete",
+      "path": "/api/v1/files/{id}",
+      "loggedRequests": 2,
+      "technicalDirectTest": false
+    },
+    "op009": {
+      "method": "get",
+      "path": "/api/v1/jobs/{id}",
+      "loggedRequests": 94,
+      "technicalDirectTest": false
+    },
+    "op010": {
+      "method": "get",
+      "path": "/api/v1/events",
+      "loggedRequests": 0,
+      "technicalDirectTest": true
+    },
+    "op011": {
+      "method": "get",
+      "path": "/api/v1/avatar/assets",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op012": {
+      "method": "get",
+      "path": "/api/v1/avatar/preferences",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op013": {
+      "method": "put",
+      "path": "/api/v1/avatar/preferences",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op014": {
+      "method": "post",
+      "path": "/api/v1/avatar/interactions",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op015": {
+      "method": "post",
+      "path": "/api/v1/avatar/checkins",
+      "loggedRequests": 3,
+      "technicalDirectTest": false
+    },
+    "op016": {
+      "method": "get",
+      "path": "/api/v1/avatar/supervision",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op017": {
+      "method": "get",
+      "path": "/api/v1/avatar/reminders",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op018": {
+      "method": "put",
+      "path": "/api/v1/avatar/reminders",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op019": {
+      "method": "get",
+      "path": "/api/v1/schools/programs",
+      "loggedRequests": 2,
+      "technicalDirectTest": false
+    },
+    "op020": {
+      "method": "post",
+      "path": "/api/v1/schools/recommendations",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op021": {
+      "method": "get",
+      "path": "/api/v1/schools/programs/{id}/facts",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op022": {
+      "method": "post",
+      "path": "/api/v1/schools/comparisons",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op023": {
+      "method": "post",
+      "path": "/api/v1/schools/evaluations",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op024": {
+      "method": "get",
+      "path": "/api/v1/schools/evaluations/{id}",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op025": {
+      "method": "get",
+      "path": "/api/v1/public-courses/knowledge",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op026": {
+      "method": "post",
+      "path": "/api/v1/public-courses/explanations",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op027": {
+      "method": "get",
+      "path": "/api/v1/public-courses/exam-points",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op028": {
+      "method": "post",
+      "path": "/api/v1/public-courses/english/tasks",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op029": {
+      "method": "post",
+      "path": "/api/v1/public-courses/politics/tasks",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op030": {
+      "method": "post",
+      "path": "/api/v1/public-courses/math/tasks",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op031": {
+      "method": "get",
+      "path": "/api/v1/professional-courses/subjects",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op032": {
+      "method": "get",
+      "path": "/api/v1/professional-courses/knowledge",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op033": {
+      "method": "post",
+      "path": "/api/v1/professional-courses/book-explanations",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op034": {
+      "method": "get",
+      "path": "/api/v1/professional-courses/past-questions",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op035": {
+      "method": "post",
+      "path": "/api/v1/professional-courses/explanations",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op036": {
+      "method": "post",
+      "path": "/api/v1/professional-courses/predictions",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op037": {
+      "method": "post",
+      "path": "/api/v1/qa/conversations",
+      "loggedRequests": 2,
+      "technicalDirectTest": false
+    },
+    "op038": {
+      "method": "post",
+      "path": "/api/v1/qa/image-recognitions",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op039": {
+      "method": "post",
+      "path": "/api/v1/qa/conversations/{id}/messages",
+      "loggedRequests": 4,
+      "technicalDirectTest": false
+    },
+    "op040": {
+      "method": "get",
+      "path": "/api/v1/qa/conversations/{id}/messages",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op041": {
+      "method": "get",
+      "path": "/api/v1/qa/messages/{id}",
+      "loggedRequests": 2,
+      "technicalDirectTest": false
+    },
+    "op042": {
+      "method": "post",
+      "path": "/api/v1/qa/messages/{id}/cancel",
+      "loggedRequests": 2,
+      "technicalDirectTest": false
+    },
+    "op043": {
+      "method": "post",
+      "path": "/api/v1/practice/sessions",
+      "loggedRequests": 5,
+      "technicalDirectTest": false
+    },
+    "op044": {
+      "method": "get",
+      "path": "/api/v1/practice/sessions/{id}",
+      "loggedRequests": 3,
+      "technicalDirectTest": false
+    },
+    "op045": {
+      "method": "post",
+      "path": "/api/v1/practice/sessions/{id}/attempts",
+      "loggedRequests": 4,
+      "technicalDirectTest": false
+    },
+    "op046": {
+      "method": "get",
+      "path": "/api/v1/practice/wrong-items",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op047": {
+      "method": "get",
+      "path": "/api/v1/practice/wrong-items/{id}/history",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op048": {
+      "method": "get",
+      "path": "/api/v1/practice/similar-questions",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op049": {
+      "method": "get",
+      "path": "/api/v1/practice/knowledge-progress",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op050": {
+      "method": "post",
+      "path": "/api/v1/plans",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op051": {
+      "method": "get",
+      "path": "/api/v1/plans/{id}",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op052": {
+      "method": "patch",
+      "path": "/api/v1/plans/{id}/tasks/{taskId}",
+      "loggedRequests": 2,
+      "technicalDirectTest": false
+    },
+    "op053": {
+      "method": "post",
+      "path": "/api/v1/plans/{id}/confirm",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op054": {
+      "method": "post",
+      "path": "/api/v1/plans/{id}/adjustments",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op055": {
+      "method": "post",
+      "path": "/api/v1/plans/{id}/tasks/{taskId}/complete",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op056": {
+      "method": "get",
+      "path": "/api/v1/plans/{id}/progress",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op057": {
+      "method": "get",
+      "path": "/api/v1/mock-exams/papers",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op058": {
+      "method": "post",
+      "path": "/api/v1/mock-exams/sessions",
+      "loggedRequests": 2,
+      "technicalDirectTest": false
+    },
+    "op059": {
+      "method": "get",
+      "path": "/api/v1/mock-exams/sessions/{id}",
+      "loggedRequests": 3,
+      "technicalDirectTest": false
+    },
+    "op060": {
+      "method": "put",
+      "path": "/api/v1/mock-exams/sessions/{id}/answers/{qid}",
+      "loggedRequests": 4,
+      "technicalDirectTest": false
+    },
+    "op061": {
+      "method": "post",
+      "path": "/api/v1/mock-exams/sessions/{id}/submit",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op062": {
+      "method": "get",
+      "path": "/api/v1/mock-exams/sessions/{id}/result",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op063": {
+      "method": "get",
+      "path": "/api/v1/mock-exams/papers/{id}/ranking",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op064": {
+      "method": "post",
+      "path": "/api/v1/mock-exams/estimates",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op065": {
+      "method": "post",
+      "path": "/api/v1/interviews",
+      "loggedRequests": 2,
+      "technicalDirectTest": false
+    },
+    "op066": {
+      "method": "post",
+      "path": "/api/v1/interviews/{id}/turns",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op067": {
+      "method": "post",
+      "path": "/api/v1/interviews/{id}/finish",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op068": {
+      "method": "get",
+      "path": "/api/v1/interviews/{id}/result",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op069": {
+      "method": "post",
+      "path": "/api/v1/interviews/self-introduction-reviews",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op070": {
+      "method": "get",
+      "path": "/api/v1/interviews/guidance",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op071": {
+      "method": "post",
+      "path": "/api/v1/analytics/study-events",
+      "loggedRequests": 2,
+      "technicalDirectTest": false
+    },
+    "op072": {
+      "method": "get",
+      "path": "/api/v1/analytics/dashboard",
+      "loggedRequests": 3,
+      "technicalDirectTest": false
+    },
+    "op073": {
+      "method": "get",
+      "path": "/api/v1/analytics/weakness-radar",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op074": {
+      "method": "get",
+      "path": "/api/v1/analytics/weekly-reports",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op075": {
+      "method": "get",
+      "path": "/api/v1/news/notices",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op076": {
+      "method": "get",
+      "path": "/api/v1/news/notices/{id}/changes",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op077": {
+      "method": "get",
+      "path": "/api/v1/news/follows",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op078": {
+      "method": "put",
+      "path": "/api/v1/news/follows",
+      "loggedRequests": 2,
+      "technicalDirectTest": false
+    },
+    "op079": {
+      "method": "get",
+      "path": "/api/v1/news/milestones",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op080": {
+      "method": "get",
+      "path": "/api/v1/news/notifications",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    },
+    "op081": {
+      "method": "post",
+      "path": "/api/v1/news/notifications/{id}/read",
+      "loggedRequests": 1,
+      "technicalDirectTest": false
+    }
+  },
+  "apifoxGeneratedRequestSteps": 146,
+  "apifoxRunStatus": "smoke attempted; ETIMEDOUT; sandbox escalation rejected; full suite awaiting IDEA service",
+  "sourceDocumentSha256": "1d9383ec0911f7e89883b2ef12baecad2cad739061640c8b774139fa701e6b30",
+  "initialSourceBackup": "C:\\Users\\jack\\Documents\\Codex\\2026-10-11\\ni-sh\\work\\backend-before-review-20261013",
+  "build": "mvn verify passed",
+  "java": "17",
+  "artifact": "D:\\STUDY\\UniversityAIUser\\target\\kaoyan-ai-server-0.0.1-SNAPSHOT.jar"
+}

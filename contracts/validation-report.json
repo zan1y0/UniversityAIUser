@@ -1,0 +1,25 @@
+{
+  "version": "1.0.0",
+  "paths": 75,
+  "operations": 81,
+  "schemas": 216,
+  "examplesValidated": 1061,
+  "negativeCases": 5,
+  "businessModules": 11,
+  "sha256": "7d2b84d815ccd1d4e6d4d740110b815252f2d5fd6cdf0c02ef4ab70f2e3d6398",
+  "status": "contract_validated_implementation_pending",
+  "moduleOperations": {
+    "00 通用技术接口": 10,
+    "M01 AI数字人陪伴督学": 8,
+    "M02 智能择校与专业分析": 6,
+    "M03 公共课智能辅导": 6,
+    "M04 专业课学习支持": 6,
+    "M05 AI答疑与解题": 6,
+    "M06 刷题错题本专项训练": 7,
+    "M07 个性化学习规划": 7,
+    "M08 模考与估分系统": 8,
+    "M09 复试AI训练": 6,
+    "M10 学习数据仪表盘": 4,
+    "M11 资讯与政策提醒": 7
+  }
+}
