@@ -1,6 +1,10 @@
-# 大学生考研 AI 导学系统 · 后端
+本仓库包含同一个软件项目的后端 UniversityAIUser 与前端 UniversityAIUserPage：后端位于根目录，最新前端源码收录在 `frontend/`。登录／注册与 JWT 认证说明见 [登录注册与JWT](docs/登录注册与JWT.md)。
 
-后端以原课程文档的 11 个模块和 `contracts/openapi.json` 为范围，独立构建及本地运行。前端独立项目位于 `C:/Users/jack/Desktop/UniversityAIUserPage`。当前不连接 MySQL、不配置外部模型、不部署 Nginx。
+# 大学生考研 AI 导学系统
+
+后端以原课程文档的 11 个模块和 `contracts/openapi.json` 为范围，独立构建及本地运行。前端是 Vue 3 + TypeScript + Vite 项目，使用说明见 [frontend/README.md](frontend/README.md)。前后端统一保存在本仓库，分别构建和启动。已配置本机 MySQL；外部模型与 Nginx 尚未配置。
+
+克隆仓库后，在根目录按下文配置并启动后端；另开终端进入 `frontend/`，执行 `npm ci`、`npm run dev` 启动前端。本机数据库、密码和模型密钥需要自行配置，参考 `.env.example`；依赖目录、构建产物和本机私有配置不提交到 Git。
 
 ## IDEA 启动
 
@@ -17,7 +21,9 @@
 
 local 配置使用 `.local-data/kaoyan.mv.db`，不是你的 MySQL 数据库。Flyway 自动建表，第一次启动生成明确标记为联调样例的院校、知识点、题目和练习卷。重新启动保留个人业务数据；会话需要重新登录。
 
-本地账号 `student`、`student2`；首次默认密码 `LocalStudy2026!`。这些账号仅由 local 数据初始化器提供，密码在数据库中为 BCrypt 哈希。首次启动可用 `LOCAL_STUDENT_PASSWORD` 改为自己的本地验证密码。设置该变量不会改写已有账号。
+本地账号 `student`、`student2` 不再提供固定默认密码。首次启动前必须在 IDEA 运行配置或终端环境中设置 `LOCAL_STUDENT_PASSWORD`，未设置或仅含空白时初始化会失败并提示配置。密码以 BCrypt 哈希存入数据库；更改该变量不会改写已有账号。Apifox 脚本读取同一变量，也可用 `-Password` 传入已有账号密码；直接导入集合时需自行填写 password 环境变量。
+
+本地 H2 密码通过 `LOCAL_DB_PASSWORD` 配置；未设置时为空，仅用于兼容现有本地 H2 文件库，已有文件必须继续使用原密码。新建文件库可在首次启动前设置非空值。MySQL 后端继续读取 `MYSQL_PASSWORD`；Docker Compose 创建 MySQL 容器时必须另外设置 `MYSQL_ROOT_PASSWORD`，缺失或为空会直接报错。`.env.example` 只是说明，需将变量配置到启动进程；Docker Compose 可读取项目根目录下未提交的 `.env`。这些配置均不会自动修改数据库服务器或现有用户密码。
 
 ## 前端协作
 
@@ -59,11 +65,15 @@ AI_AUDIO_MODEL=<支持 /audio/transcriptions 的模型>
 
 私有文件限制 10 MiB，文件头须与 MIME、用途一致。WAV 由 JDK 检查实际时长并限定 600 秒。MP3、WebM、OGG 可通过环境变量 `APP_FFPROBE_EXECUTABLE` 指定本机 ffprobe 的完整路径；未配置时明确返回依赖不可用。语音转写、合成/播放能力需相应服务或前端浏览器提供；后端不虚构音频文件 ID。
 
-## MySQL 脚本（尚未执行）
+## 本机 MySQL 连接
 
-`database/create-database.mysql.sql` 创建独立 `kaoyan_ai` 数据库。`src/main/resources/db/migration/mysql/V1__initial_schema.sql` 含 37 张业务/技术表。当前本地测试验证 H2 版本，不代表已连接或已验证你的 MySQL。
+2026-10-15 已连接本机 MySQL 8.0.46（127.0.0.1:3306），创建 `kaoyan_ai` 数据库并由 Flyway 成功执行 V1 迁移：37 张业务/技术表，加 1 张 Flyway 历史表。没有改动其他数据库。MySQL 模式启动后，`GET /api/v1/session/csrf` 已返回成功。
 
-以后启用 MySQL 时设置 `SPRING_PROFILES_ACTIVE=mysql`、`MYSQL_HOST`、`MYSQL_PORT`、`MYSQL_DB`、`MYSQL_USER`、`MYSQL_PASSWORD`。业务账号应具备本数据库内迁移所需权限，不使用源码中的 root/root。mysql 配置不会注入本地种子账号或样例资料；正式账号及课程资料须独立初始化。
+在 IDEA 顶部选择 **KaoyanAi MySQL** 运行配置，再点击运行；或执行 `./scripts/start-mysql.ps1`。配置使用 Java 17、`--spring.profiles.active=mysql` 和项目根工作目录。普通主类运行仍默认 local（H2），便于原有本地验证。
+
+`application-mysql.yml` 读取 `.local-data/mysql-local.properties` 中的本机连接信息。该文件已被 Git 忽略，不能提交；源码、IDEA 运行配置与文档均不包含真实密码。环境变量 `MYSQL_HOST`、`MYSQL_PORT`、`MYSQL_DB`、`MYSQL_USER`、`MYSQL_PASSWORD` 仍可覆盖本地值。
+
+mysql 配置不会注入 H2 本地种子账号或样例资料，目前新库的 `app_users` 为空，`student` 演示账号不能直接用于 MySQL 登录。账号和课程初始化属于后续业务配置，不自动迁移 H2 数据。
 
 持久化按聚合使用独立表，公共目录快照与用户资源通过 owner 隔离；聚合的子项保存在受契约约束的 JSON 文本中。版本列执行乐观锁，写业务通过事务和用户行锁串行化；幂等响应与业务修改在同一事务保存。不是传统每个 DTO 属性一列的 MyBatis 实体结构；现实现使用 Spring JDBC，清理了未使用的 Redis、OSS 和 MyBatis 依赖。
 
@@ -85,3 +95,4 @@ Apifox 的 4 次任务轮询依赖脚本设置的请求间隔；资源或模型�
 `controller` 声明显式接口；`contract` 做严格校验和事务/幂等入口；`domain` 处理 11 模块业务；`persistence` 负责持久化；`jobs` 负责异步任务、通知和计时；`security` 负责会话与 CSRF；`storage` 负责私有文件；`ai` 负责模型适配；`common` 负责错误及 DTO 构造。
 
 Java 17、UTF-8，类/方法使用英文命名，关键业务规则用中文注释。控制器不接受 userId 指定当前用户，不返回数据库用户实体或密钥；不得修改既定契约字段来绕过校验；写请求必须检查归属、版本和状态。日志使用 traceId，不打印账号密码、Cookie、CSRF 或模型密钥。Java 源码采用统一格式，业务变更附相应集成测试。
+

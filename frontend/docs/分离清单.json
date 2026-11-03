@@ -1,0 +1,34 @@
+{
+  "source": "D:\\STUDY\\UniversityAIUser\\frontend",
+  "target": "C:\\Users\\jack\\Desktop\\UniversityAIUserPage",
+  "copiedTopLevel": [
+    ".dockerignore",
+    ".env.example",
+    ".gitignore",
+    ".prettierignore",
+    ".prettierrc.json",
+    "Dockerfile",
+    "README.md",
+    "deploy",
+    "index.html",
+    "package-lock.json",
+    "package.json",
+    "playwright.config.ts",
+    "src",
+    "tests",
+    "tsconfig.json",
+    "vite.config.ts",
+    "vitest.config.ts"
+  ],
+  "excluded": [
+    ".git",
+    "dist",
+    "node_modules",
+    "playwright-report",
+    "test-results"
+  ],
+  "modules": 11,
+  "apiContractVersion": "1.0.0",
+  "legacyAdapterPendingMigration": true,
+  "sourcePreserved": true
+}

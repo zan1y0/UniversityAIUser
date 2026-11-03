@@ -1,0 +1,838 @@
+{
+  "op001": {
+    "token": "example-value",
+    "headerName": "X-CSRF-Token"
+  },
+  "op002": {
+    "id": "00000001-1111-4111-8111-111111111111",
+    "loginName": "student",
+    "displayName": "联调同学"
+  },
+  "op003": null,
+  "op004": {
+    "user": {
+      "id": "00000001-1111-4111-8111-111111111111",
+      "loginName": "student",
+      "displayName": "联调同学"
+    },
+    "undergraduateMajor": "软件工程",
+    "targetProgramId": "00000002-1111-4111-8111-111111111111",
+    "targetDate": "2027-12-20",
+    "dailyMinutes": 240,
+    "timezone": "Asia/Shanghai",
+    "baseline": [],
+    "activePlanId": null,
+    "version": 3
+  },
+  "op005": {
+    "user": {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "loginName": "example-value",
+      "displayName": "example-value"
+    },
+    "undergraduateMajor": "example-value",
+    "targetProgramId": null,
+    "targetDate": null,
+    "dailyMinutes": 1,
+    "timezone": "Asia/Shanghai",
+    "baseline": [],
+    "activePlanId": null,
+    "version": 1
+  },
+  "op006": {
+    "id": "11111111-1111-4111-8111-111111111111",
+    "purpose": "qaImage",
+    "mimeType": "image/jpeg",
+    "sizeBytes": 1,
+    "durationSeconds": null,
+    "createdAt": "2026-10-11T08:00:00Z"
+  },
+  "op007": null,
+  "op008": null,
+  "op009": {
+    "id": "11111111-1111-4111-8111-111111111111",
+    "kind": "avatarInteraction",
+    "status": "queued",
+    "version": 1,
+    "progress": 1,
+    "resourceId": null,
+    "resultUrl": "example-value",
+    "result": null,
+    "error": null,
+    "createdAt": "2026-10-11T08:00:00Z",
+    "updatedAt": "2026-10-11T08:00:00Z"
+  },
+  "op010": null,
+  "op011": {
+    "items": []
+  },
+  "op012": {
+    "shapeId": "11111111-1111-4111-8111-111111111111",
+    "mode": "scholar",
+    "voice": "example-value",
+    "reminderTime": "20:00",
+    "version": 1
+  },
+  "op013": {
+    "shapeId": "11111111-1111-4111-8111-111111111111",
+    "mode": "scholar",
+    "voice": "example-value",
+    "reminderTime": "20:00",
+    "version": 1
+  },
+  "op014": {
+    "jobId": "11111111-1111-4111-8111-111111111111",
+    "status": "queued",
+    "resultUrl": "example-value",
+    "resourceId": null
+  },
+  "op015": {
+    "id": "11111111-1111-4111-8111-111111111111",
+    "localDate": "2026-10-11",
+    "streakDays": 1,
+    "createdAt": "2026-10-11T08:00:00Z"
+  },
+  "op016": {
+    "date": "2026-10-11",
+    "plannedTasks": 1,
+    "completedTasks": 1,
+    "overdueTaskIds": [],
+    "message": "example-value",
+    "mode": "scholar"
+  },
+  "op017": {
+    "enabled": true,
+    "time": "20:00",
+    "mode": "scholar",
+    "version": 1
+  },
+  "op018": {
+    "enabled": true,
+    "time": "20:00",
+    "mode": "scholar",
+    "version": 1
+  },
+  "op019": {
+    "items": [
+      {
+        "id": "00000002-1111-4111-8111-111111111111",
+        "schoolName": "联调示例院校",
+        "programName": "软件工程",
+        "major": "软件工程",
+        "region": "上海",
+        "year": 2027,
+        "difficulty": "medium",
+        "scoreLine": 330,
+        "enrollment": 20,
+        "admissionRatio": null,
+        "sources": [],
+        "snapshotId": "11111111-1111-4111-8111-111111111111"
+      }
+    ],
+    "page": 1,
+    "pageSize": 20,
+    "total": 1
+  },
+  "op020": {
+    "items": []
+  },
+  "op021": {
+    "program": {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "schoolName": "example-value",
+      "programName": "example-value",
+      "major": "example-value",
+      "region": "example-value",
+      "year": 2000,
+      "difficulty": "easy",
+      "scoreLine": null,
+      "enrollment": null,
+      "admissionRatio": null,
+      "sources": [],
+      "snapshotId": "11111111-1111-4111-8111-111111111111"
+    },
+    "metrics": [],
+    "missingFields": []
+  },
+  "op022": {
+    "year": 2000,
+    "programs": [
+      {
+        "program": {
+          "id": "11111111-1111-4111-8111-111111111111",
+          "schoolName": "example-value",
+          "programName": "example-value",
+          "major": "example-value",
+          "region": "example-value",
+          "year": 2000,
+          "difficulty": "easy",
+          "scoreLine": null,
+          "enrollment": null,
+          "admissionRatio": null,
+          "sources": [],
+          "snapshotId": "11111111-1111-4111-8111-111111111111"
+        },
+        "metrics": [],
+        "missingFields": []
+      },
+      {
+        "program": {
+          "id": "11111111-1111-4111-8111-111111111111",
+          "schoolName": "example-value",
+          "programName": "example-value",
+          "major": "example-value",
+          "region": "example-value",
+          "year": 2000,
+          "difficulty": "easy",
+          "scoreLine": null,
+          "enrollment": null,
+          "admissionRatio": null,
+          "sources": [],
+          "snapshotId": "11111111-1111-4111-8111-111111111111"
+        },
+        "metrics": [],
+        "missingFields": []
+      }
+    ]
+  },
+  "op023": {
+    "jobId": "11111111-1111-4111-8111-111111111111",
+    "status": "queued",
+    "resultUrl": "example-value",
+    "resourceId": null
+  },
+  "op024": {
+    "kind": "schoolEvaluation",
+    "id": "11111111-1111-4111-8111-111111111111",
+    "programId": "11111111-1111-4111-8111-111111111111",
+    "status": "completed",
+    "probability": 0,
+    "reason": "example-value",
+    "missingFields": [],
+    "risks": [],
+    "sources": [],
+    "modelVersion": "example-value",
+    "calibrationVersion": "example-value",
+    "snapshotId": "11111111-1111-4111-8111-111111111111",
+    "createdAt": "2026-10-11T08:00:00Z"
+  },
+  "op025": {
+    "subjectId": "00000003-1111-4111-8111-111111111111",
+    "examType": "example-value",
+    "year": 2027,
+    "edition": "example-value",
+    "nodes": [
+      {
+        "id": "00000004-1111-4111-8111-111111111111",
+        "parentId": null,
+        "name": "极限与连续",
+        "depth": 0,
+        "order": 1,
+        "subjectId": "00000003-1111-4111-8111-111111111111"
+      }
+    ],
+    "sources": []
+  },
+  "op026": {
+    "jobId": "11111111-1111-4111-8111-111111111111",
+    "status": "queued",
+    "resultUrl": "example-value",
+    "resourceId": null
+  },
+  "op027": {
+    "items": []
+  },
+  "op028": {
+    "jobId": "11111111-1111-4111-8111-111111111111",
+    "status": "queued",
+    "resultUrl": "example-value",
+    "resourceId": null
+  },
+  "op029": {
+    "jobId": "11111111-1111-4111-8111-111111111111",
+    "status": "queued",
+    "resultUrl": "example-value",
+    "resourceId": null
+  },
+  "op030": {
+    "jobId": "11111111-1111-4111-8111-111111111111",
+    "status": "queued",
+    "resultUrl": "example-value",
+    "resourceId": null
+  },
+  "op031": {
+    "items": [
+      {
+        "id": "00000003-1111-4111-8111-111111111111",
+        "name": "计算机专业综合",
+        "discipline": "computer",
+        "programId": "00000002-1111-4111-8111-111111111111",
+        "year": 2027,
+        "bookIds": ["00000022-1111-4111-8111-111111111111"]
+      }
+    ]
+  },
+  "op032": {
+    "subjectId": "11111111-1111-4111-8111-111111111111",
+    "examType": "example-value",
+    "year": 2000,
+    "edition": "example-value",
+    "nodes": [],
+    "sources": []
+  },
+  "op033": {
+    "jobId": "11111111-1111-4111-8111-111111111111",
+    "status": "queued",
+    "resultUrl": "example-value",
+    "resourceId": null
+  },
+  "op034": {
+    "items": [],
+    "page": 1,
+    "pageSize": 1,
+    "total": 1
+  },
+  "op035": {
+    "jobId": "11111111-1111-4111-8111-111111111111",
+    "status": "queued",
+    "resultUrl": "example-value",
+    "resourceId": null
+  },
+  "op036": {
+    "jobId": "11111111-1111-4111-8111-111111111111",
+    "status": "queued",
+    "resultUrl": "example-value",
+    "resourceId": null
+  },
+  "op037": {
+    "id": "00000007-1111-4111-8111-111111111111",
+    "subjectId": "00000003-1111-4111-8111-111111111111",
+    "contextVersion": 1,
+    "createdAt": "2026-10-13T09:14:07Z",
+    "updatedAt": "2026-10-13T09:14:07Z"
+  },
+  "op038": {
+    "jobId": "11111111-1111-4111-8111-111111111111",
+    "status": "queued",
+    "resultUrl": "example-value",
+    "resourceId": null
+  },
+  "op039": {
+    "jobId": "11111111-1111-4111-8111-111111111111",
+    "messageId": "11111111-1111-4111-8111-111111111111",
+    "status": "queued",
+    "resultUrl": "example-value",
+    "contextVersion": 1
+  },
+  "op040": {
+    "items": [],
+    "page": 1,
+    "pageSize": 1,
+    "total": 1
+  },
+  "op041": {
+    "id": "00000008-1111-4111-8111-111111111111",
+    "conversationId": "00000007-1111-4111-8111-111111111111",
+    "role": "assistant",
+    "inputText": "如何分析极限题？",
+    "status": "completed",
+    "guidance": {
+      "steps": ["识别题目条件", "选择适用的知识点"],
+      "hints": ["先尝试写出第一步"],
+      "method": "检查边界条件",
+      "sources": [],
+      "modelVersion": "fixture-value"
+    },
+    "contextVersion": 2,
+    "version": 2,
+    "createdAt": "2026-10-13T09:14:07Z"
+  },
+  "op042": {
+    "id": "11111111-1111-4111-8111-111111111111",
+    "conversationId": "11111111-1111-4111-8111-111111111111",
+    "role": "user",
+    "inputText": "example-value",
+    "status": "queued",
+    "guidance": null,
+    "contextVersion": 1,
+    "version": 1,
+    "createdAt": "2026-10-11T08:00:00Z"
+  },
+  "op043": {
+    "id": "00000009-1111-4111-8111-111111111111",
+    "type": "daily",
+    "subjectId": "00000003-1111-4111-8111-111111111111",
+    "knowledgeId": "00000004-1111-4111-8111-111111111111",
+    "difficulty": "easy",
+    "questions": [
+      {
+        "id": "00000005-1111-4111-8111-111111111111",
+        "versionId": "00000006-1111-4111-8111-111111111111",
+        "subjectId": "00000003-1111-4111-8111-111111111111",
+        "knowledgeId": "00000004-1111-4111-8111-111111111111",
+        "kind": "singleChoice",
+        "stem": "示例训练：选择正确的学习方法。",
+        "options": [
+          {
+            "id": "A",
+            "text": "先分析条件再推导"
+          },
+          {
+            "id": "B",
+            "text": "跳过推导直接猜答案"
+          }
+        ],
+        "difficulty": "easy",
+        "maxScore": 4,
+        "sources": []
+      }
+    ],
+    "createdAt": "2026-10-13T09:14:07Z"
+  },
+  "op044": {
+    "id": "00000009-1111-4111-8111-111111111111",
+    "type": "daily",
+    "subjectId": "00000003-1111-4111-8111-111111111111",
+    "knowledgeId": "00000004-1111-4111-8111-111111111111",
+    "difficulty": "easy",
+    "questions": [
+      {
+        "id": "00000005-1111-4111-8111-111111111111",
+        "versionId": "00000006-1111-4111-8111-111111111111",
+        "subjectId": "00000003-1111-4111-8111-111111111111",
+        "knowledgeId": "00000004-1111-4111-8111-111111111111",
+        "kind": "singleChoice",
+        "stem": "示例训练：选择正确的学习方法。",
+        "options": [
+          {
+            "id": "A",
+            "text": "先分析条件再推导"
+          },
+          {
+            "id": "B",
+            "text": "跳过推导直接猜答案"
+          }
+        ],
+        "difficulty": "easy",
+        "maxScore": 4,
+        "sources": []
+      }
+    ],
+    "createdAt": "2026-10-13T09:14:07Z"
+  },
+  "op045": {
+    "id": "00000010-1111-4111-8111-111111111111",
+    "sessionId": "00000009-1111-4111-8111-111111111111",
+    "questionVersionId": "00000006-1111-4111-8111-111111111111",
+    "answer": {
+      "kind": "singleChoice",
+      "optionId": "A"
+    },
+    "correct": true,
+    "score": 4,
+    "maxScore": 4,
+    "correctAnswer": {
+      "kind": "singleChoice",
+      "optionId": "A"
+    },
+    "explanation": {
+      "kind": "explanation",
+      "title": "解题方法讲解",
+      "summary": "先明确条件。",
+      "steps": ["识别题目条件", "选择适用的知识点"],
+      "hints": ["先尝试写出第一步"],
+      "method": "检查边界条件",
+      "sources": [],
+      "modelVersion": "fixture-value"
+    },
+    "wrongItemId": null,
+    "createdAt": "2026-10-13T09:14:07Z"
+  },
+  "op046": {
+    "items": [],
+    "page": 1,
+    "pageSize": 1,
+    "total": 1
+  },
+  "op047": {
+    "items": [],
+    "page": 1,
+    "pageSize": 1,
+    "total": 1
+  },
+  "op048": {
+    "items": []
+  },
+  "op049": {
+    "subjectId": "11111111-1111-4111-8111-111111111111",
+    "timeRange": "week",
+    "items": [],
+    "algorithmVersion": "example-value"
+  },
+  "op050": {
+    "jobId": "11111111-1111-4111-8111-111111111111",
+    "status": "queued",
+    "resultUrl": "example-value",
+    "resourceId": null
+  },
+  "op051": {
+    "id": "00000011-1111-4111-8111-111111111111",
+    "status": "draft",
+    "targetDate": "2027-12-20",
+    "dailyMinutes": 240,
+    "profileVersion": 3,
+    "tasks": [
+      {
+        "id": "00000012-1111-4111-8111-111111111111",
+        "subjectId": "00000003-1111-4111-8111-111111111111",
+        "knowledgeId": "00000004-1111-4111-8111-111111111111",
+        "scheduledDate": "2026-10-13",
+        "minutes": 30,
+        "content": "复习极限与连续",
+        "status": "pending",
+        "completedAt": null,
+        "version": 1
+      }
+    ],
+    "view": "week",
+    "viewDate": "2026-10-13",
+    "version": 1,
+    "createdAt": "2026-10-13T09:14:07Z"
+  },
+  "op052": {
+    "id": "11111111-1111-4111-8111-111111111111",
+    "subjectId": "11111111-1111-4111-8111-111111111111",
+    "knowledgeId": null,
+    "scheduledDate": "2026-10-11",
+    "minutes": 1,
+    "content": "example-value",
+    "status": "pending",
+    "completedAt": null,
+    "version": 1
+  },
+  "op053": {
+    "id": "00000011-1111-4111-8111-111111111111",
+    "status": "active",
+    "targetDate": "2027-12-20",
+    "dailyMinutes": 240,
+    "profileVersion": 3,
+    "tasks": [
+      {
+        "id": "00000012-1111-4111-8111-111111111111",
+        "subjectId": "00000003-1111-4111-8111-111111111111",
+        "knowledgeId": "00000004-1111-4111-8111-111111111111",
+        "scheduledDate": "2026-10-13",
+        "minutes": 30,
+        "content": "复习极限与连续",
+        "status": "pending",
+        "completedAt": null,
+        "version": 1
+      }
+    ],
+    "view": "week",
+    "viewDate": "2026-10-13",
+    "version": 2,
+    "createdAt": "2026-10-13T09:14:07Z"
+  },
+  "op054": {
+    "jobId": "11111111-1111-4111-8111-111111111111",
+    "status": "queued",
+    "resultUrl": "example-value",
+    "resourceId": null
+  },
+  "op055": {
+    "id": "11111111-1111-4111-8111-111111111111",
+    "subjectId": "11111111-1111-4111-8111-111111111111",
+    "knowledgeId": null,
+    "scheduledDate": "2026-10-11",
+    "minutes": 1,
+    "content": "example-value",
+    "status": "pending",
+    "completedAt": null,
+    "version": 1
+  },
+  "op056": {
+    "planId": "11111111-1111-4111-8111-111111111111",
+    "timeRange": "week",
+    "plannedMinutes": 1,
+    "completedMinutes": 1,
+    "plannedTasks": 1,
+    "completedTasks": 1,
+    "completionRate": null,
+    "version": 1
+  },
+  "op057": {
+    "items": [
+      {
+        "id": "00000013-1111-4111-8111-111111111111",
+        "versionId": "00000014-1111-4111-8111-111111111111",
+        "title": "数学全真模拟 · 示例卷",
+        "subject": "math",
+        "examType": "fixture-value",
+        "year": 2027,
+        "durationMinutes": 30,
+        "maxScore": 100,
+        "questionCount": 1,
+        "sources": []
+      }
+    ],
+    "page": 1,
+    "pageSize": 20,
+    "total": 1
+  },
+  "op058": {
+    "id": "00000015-1111-4111-8111-111111111111",
+    "paperVersionId": "00000014-1111-4111-8111-111111111111",
+    "status": "in_progress",
+    "startedAt": "2026-10-13T09:14:07Z",
+    "deadlineAt": "2026-10-13T09:44:07Z",
+    "serverTime": "2026-10-13T09:14:07Z",
+    "questions": [
+      {
+        "id": "00000005-1111-4111-8111-111111111111",
+        "versionId": "00000006-1111-4111-8111-111111111111",
+        "subjectId": "00000003-1111-4111-8111-111111111111",
+        "knowledgeId": "00000004-1111-4111-8111-111111111111",
+        "kind": "singleChoice",
+        "stem": "示例训练：选择正确的学习方法。",
+        "options": [
+          {
+            "id": "A",
+            "text": "先分析条件再推导"
+          },
+          {
+            "id": "B",
+            "text": "跳过推导直接猜答案"
+          }
+        ],
+        "difficulty": "easy",
+        "maxScore": 4,
+        "sources": []
+      }
+    ],
+    "answers": [],
+    "version": 1
+  },
+  "op059": {
+    "id": "00000015-1111-4111-8111-111111111111",
+    "paperVersionId": "00000014-1111-4111-8111-111111111111",
+    "status": "in_progress",
+    "startedAt": "2026-10-13T09:14:07Z",
+    "deadlineAt": "2026-10-13T09:44:07Z",
+    "serverTime": "2026-10-13T09:14:07Z",
+    "questions": [
+      {
+        "id": "00000005-1111-4111-8111-111111111111",
+        "versionId": "00000006-1111-4111-8111-111111111111",
+        "subjectId": "00000003-1111-4111-8111-111111111111",
+        "knowledgeId": "00000004-1111-4111-8111-111111111111",
+        "kind": "singleChoice",
+        "stem": "示例训练：选择正确的学习方法。",
+        "options": [
+          {
+            "id": "A",
+            "text": "先分析条件再推导"
+          },
+          {
+            "id": "B",
+            "text": "跳过推导直接猜答案"
+          }
+        ],
+        "difficulty": "easy",
+        "maxScore": 4,
+        "sources": []
+      }
+    ],
+    "answers": [],
+    "version": 1
+  },
+  "op060": {
+    "questionId": "00000005-1111-4111-8111-111111111111",
+    "answer": {
+      "kind": "singleChoice",
+      "optionId": "A"
+    },
+    "version": 1,
+    "savedAt": "2026-10-13T09:14:07Z"
+  },
+  "op061": {
+    "submissionId": "11111111-1111-4111-8111-111111111111",
+    "sessionId": "11111111-1111-4111-8111-111111111111",
+    "jobId": "11111111-1111-4111-8111-111111111111",
+    "status": "queued",
+    "scoringStatus": "queued",
+    "submittedAt": "2026-10-11T08:00:00Z",
+    "serverTime": "2026-10-11T08:00:00Z",
+    "resultUrl": "example-value"
+  },
+  "op062": {
+    "kind": "examScore",
+    "sessionId": "00000015-1111-4111-8111-111111111111",
+    "paperVersionId": "00000014-1111-4111-8111-111111111111",
+    "scoringStatus": "completed",
+    "objectiveScore": 85,
+    "subjectiveEstimate": 0,
+    "totalScore": 85,
+    "maxScore": 100,
+    "dimensions": [],
+    "weakSubjectIds": [],
+    "rubricVersion": "fixture-value",
+    "modelVersion": null,
+    "scoreSnapshotId": "00000017-1111-4111-8111-111111111111",
+    "version": 1
+  },
+  "op063": {
+    "paperVersionId": "11111111-1111-4111-8111-111111111111",
+    "sampleCount": 1,
+    "myRank": null,
+    "items": [],
+    "page": 1,
+    "pageSize": 1,
+    "total": 1
+  },
+  "op064": {
+    "jobId": "11111111-1111-4111-8111-111111111111",
+    "status": "queued",
+    "resultUrl": "example-value",
+    "resourceId": null
+  },
+  "op065": {
+    "id": "00000018-1111-4111-8111-111111111111",
+    "programId": "00000002-1111-4111-8111-111111111111",
+    "mode": "professional",
+    "language": "zh-CN",
+    "duration": 60,
+    "status": "in_progress",
+    "firstQuestion": {
+      "id": "00000019-1111-4111-8111-111111111111",
+      "text": "请介绍一个你熟悉的专业知识点。",
+      "audioFileId": null
+    },
+    "version": 1,
+    "createdAt": "2026-10-13T09:14:07Z"
+  },
+  "op066": {
+    "jobId": "11111111-1111-4111-8111-111111111111",
+    "status": "queued",
+    "resultUrl": "example-value",
+    "resourceId": null
+  },
+  "op067": {
+    "jobId": "11111111-1111-4111-8111-111111111111",
+    "status": "queued",
+    "resultUrl": "example-value",
+    "resourceId": null
+  },
+  "op068": {
+    "kind": "interviewReport",
+    "interviewId": "11111111-1111-4111-8111-111111111111",
+    "status": "queued",
+    "turns": [],
+    "dimensions": [],
+    "summary": null,
+    "englishSuggestions": [],
+    "rubricVersion": "example-value",
+    "version": 1
+  },
+  "op069": {
+    "jobId": "11111111-1111-4111-8111-111111111111",
+    "status": "queued",
+    "resultUrl": "example-value",
+    "resourceId": null
+  },
+  "op070": {
+    "type": "etiquette",
+    "programId": "11111111-1111-4111-8111-111111111111",
+    "title": "example-value",
+    "content": "example-value",
+    "sources": []
+  },
+  "op071": {
+    "id": "11111111-1111-4111-8111-111111111111",
+    "event": {
+      "eventId": "11111111-1111-4111-8111-111111111111",
+      "type": "reading",
+      "startAt": "2026-10-11T08:00:00Z",
+      "endAt": "2026-10-11T08:00:00Z",
+      "taskId": null,
+      "focusSelfReport": null
+    },
+    "effectiveMinutes": 0,
+    "createdAt": "2026-10-11T08:00:00Z"
+  },
+  "op072": {
+    "from": "2026-10-11",
+    "to": "2026-10-11",
+    "timezone": "Asia/Shanghai",
+    "studyMinutes": 0,
+    "focus": null,
+    "correctRate": null,
+    "attemptCount": 1,
+    "curve": [],
+    "algorithmVersion": "example-value"
+  },
+  "op073": {
+    "subjectId": "11111111-1111-4111-8111-111111111111",
+    "from": "2026-10-11",
+    "to": "2026-10-11",
+    "items": [],
+    "algorithmVersion": "example-value"
+  },
+  "op074": {
+    "weekStart": "2026-10-11",
+    "timezone": "Asia/Shanghai",
+    "status": "pending",
+    "studyMinutes": 0,
+    "correctRate": null,
+    "summary": null,
+    "suggestions": [],
+    "algorithmVersion": "example-value",
+    "generatedAt": null
+  },
+  "op075": {
+    "items": [],
+    "page": 1,
+    "pageSize": 20,
+    "total": 0
+  },
+  "op076": {
+    "noticeId": "11111111-1111-4111-8111-111111111111",
+    "fromVersion": 1,
+    "toVersion": 1,
+    "changes": [],
+    "sources": []
+  },
+  "op077": {
+    "programIds": [],
+    "region": null,
+    "year": 2000,
+    "version": 1
+  },
+  "op078": {
+    "programIds": [],
+    "region": null,
+    "year": 2000,
+    "version": 1
+  },
+  "op079": {
+    "items": []
+  },
+  "op080": {
+    "items": [],
+    "page": 1,
+    "pageSize": 20,
+    "total": 0
+  },
+  "op081": {
+    "id": "11111111-1111-4111-8111-111111111111",
+    "eventId": "10001",
+    "type": "policy.updated",
+    "title": "example-value",
+    "content": "example-value",
+    "resourceId": "11111111-1111-4111-8111-111111111111",
+    "read": true,
+    "readAt": null,
+    "createdAt": "2026-10-11T08:00:00Z",
+    "version": 1
+  }
+}

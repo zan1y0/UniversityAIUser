@@ -39,29 +39,29 @@ const weekDays = computed(() =>
   }),
 );
 const trendOption = computed(() => ({
-  color: ['#6b8ae5'],
+  color: ['#258d76'],
   tooltip: { trigger: 'axis' },
   grid: { left: 35, right: 15, top: 20, bottom: 25 },
   xAxis: {
     type: 'category',
     data: weekDays.value.map((d) => d.slice(5)),
-    axisLine: { lineStyle: { color: '#e7ecf5' } },
+    axisLine: { lineStyle: { color: '#e3ece6' } },
     axisTick: { show: false },
-    axisLabel: { color: '#99a5ba', fontSize: 10 },
+    axisLabel: { color: '#8a9a95', fontSize: 10 },
   },
   yAxis: {
     type: 'value',
     name: '分钟',
-    nameTextStyle: { color: '#9aa7bb', fontSize: 10 },
-    axisLabel: { color: '#99a5ba', fontSize: 10 },
-    splitLine: { lineStyle: { color: '#f0f3f9', type: 'dashed' } },
+    nameTextStyle: { color: '#8a9a95', fontSize: 10 },
+    axisLabel: { color: '#8a9a95', fontSize: 10 },
+    splitLine: { lineStyle: { color: '#edf3ef', type: 'dashed' } },
   },
   series: [
     {
       type: 'line',
       smooth: true,
       symbolSize: 6,
-      areaStyle: { color: '#edf2ff' },
+      areaStyle: { color: '#e1f0e7' },
       data: weekDays.value.map((d) =>
         study.state.events.filter((e) => e.date === d).reduce((n, e) => n + e.minutes, 0),
       ),
@@ -69,12 +69,12 @@ const trendOption = computed(() => ({
   ],
 }));
 const radarOption = computed(() => ({
-  color: ['#7795e7'],
+  color: ['#258d76'],
   radar: {
     indicator: ['数学', '英语', '政治', '专业课'].map((s) => ({ name: s, max: 100 })),
-    axisName: { color: '#8b99b1', fontSize: 11 },
-    splitLine: { lineStyle: { color: '#e7edf7' } },
-    splitArea: { areaStyle: { color: ['#fff', '#f8faff'] } },
+    axisName: { color: '#7c8f86', fontSize: 11 },
+    splitLine: { lineStyle: { color: '#e2ece5' } },
+    splitArea: { areaStyle: { color: ['#fff', '#f5f9f6'] } },
     radius: '65%',
   },
   series: [
@@ -99,7 +99,7 @@ const radarOption = computed(() => ({
               ? Math.round((ids.filter((a) => a.correct).length / ids.length) * 100)
               : 0;
           }),
-          areaStyle: { color: '#dfe9fc66' },
+          areaStyle: { color: '#b7dac666' },
         },
       ],
     },

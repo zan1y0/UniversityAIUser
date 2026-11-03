@@ -1,0 +1,804 @@
+{
+  "date": "2026-10-23",
+  "backendRoot": "D:/STUDY/UniversityAIUser",
+  "frontendRoot": "C:/Users/jack/Desktop/UniversityAIUserPage",
+  "counts": {
+    "backendJava": 51,
+    "backendTestJava": 7,
+    "backendResources": 13,
+    "frontendSrc": 44,
+    "contractOperations": 81,
+    "httpMappings": 85,
+    "frontendExportTypes": 239
+  },
+  "backendJava": [
+    "src/main/java/com/kaoyan/ai/ai/ModelGateway.java",
+    "src/main/java/com/kaoyan/ai/common/ApiAdvice.java",
+    "src/main/java/com/kaoyan/ai/common/ApiException.java",
+    "src/main/java/com/kaoyan/ai/common/Jsons.java",
+    "src/main/java/com/kaoyan/ai/contract/ApiExecutor.java",
+    "src/main/java/com/kaoyan/ai/contract/ContractRegistry.java",
+    "src/main/java/com/kaoyan/ai/controller/AuthController.java",
+    "src/main/java/com/kaoyan/ai/controller/Module01Controller.java",
+    "src/main/java/com/kaoyan/ai/controller/Module02Controller.java",
+    "src/main/java/com/kaoyan/ai/controller/Module03Controller.java",
+    "src/main/java/com/kaoyan/ai/controller/Module04Controller.java",
+    "src/main/java/com/kaoyan/ai/controller/Module05Controller.java",
+    "src/main/java/com/kaoyan/ai/controller/Module06Controller.java",
+    "src/main/java/com/kaoyan/ai/controller/Module07Controller.java",
+    "src/main/java/com/kaoyan/ai/controller/Module08Controller.java",
+    "src/main/java/com/kaoyan/ai/controller/Module09Controller.java",
+    "src/main/java/com/kaoyan/ai/controller/Module10Controller.java",
+    "src/main/java/com/kaoyan/ai/controller/Module11Controller.java",
+    "src/main/java/com/kaoyan/ai/controller/SupportController.java",
+    "src/main/java/com/kaoyan/ai/domain/AnalyticsService.java",
+    "src/main/java/com/kaoyan/ai/domain/AvatarService.java",
+    "src/main/java/com/kaoyan/ai/domain/CatalogService.java",
+    "src/main/java/com/kaoyan/ai/domain/DomainContext.java",
+    "src/main/java/com/kaoyan/ai/domain/DomainDispatcher.java",
+    "src/main/java/com/kaoyan/ai/domain/ExamService.java",
+    "src/main/java/com/kaoyan/ai/domain/InterviewService.java",
+    "src/main/java/com/kaoyan/ai/domain/NewsService.java",
+    "src/main/java/com/kaoyan/ai/domain/PartialScoringException.java",
+    "src/main/java/com/kaoyan/ai/domain/PlanService.java",
+    "src/main/java/com/kaoyan/ai/domain/PracticeService.java",
+    "src/main/java/com/kaoyan/ai/domain/ProfileService.java",
+    "src/main/java/com/kaoyan/ai/domain/QaService.java",
+    "src/main/java/com/kaoyan/ai/jobs/EventService.java",
+    "src/main/java/com/kaoyan/ai/jobs/ExamDeadlineService.java",
+    "src/main/java/com/kaoyan/ai/jobs/JobRecovery.java",
+    "src/main/java/com/kaoyan/ai/jobs/JobService.java",
+    "src/main/java/com/kaoyan/ai/jobs/JobWorker.java",
+    "src/main/java/com/kaoyan/ai/jobs/PolicyImportService.java",
+    "src/main/java/com/kaoyan/ai/jobs/ReminderService.java",
+    "src/main/java/com/kaoyan/ai/KaoyanAiApplication.java",
+    "src/main/java/com/kaoyan/ai/persistence/EventOutboxRepository.java",
+    "src/main/java/com/kaoyan/ai/persistence/IdempotencyRepository.java",
+    "src/main/java/com/kaoyan/ai/persistence/LocalDataInitializer.java",
+    "src/main/java/com/kaoyan/ai/persistence/RecordRepository.java",
+    "src/main/java/com/kaoyan/ai/persistence/UserAccountRepository.java",
+    "src/main/java/com/kaoyan/ai/security/AuthService.java",
+    "src/main/java/com/kaoyan/ai/security/JwtService.java",
+    "src/main/java/com/kaoyan/ai/security/SessionFilter.java",
+    "src/main/java/com/kaoyan/ai/security/SessionService.java",
+    "src/main/java/com/kaoyan/ai/storage/AudioInspector.java",
+    "src/main/java/com/kaoyan/ai/storage/FileService.java"
+  ],
+  "backendTests": [
+    "src/test/java/com/kaoyan/ai/AuthIntegrationTests.java",
+    "src/test/java/com/kaoyan/ai/BackendContractTests.java",
+    "src/test/java/com/kaoyan/ai/BackendModelFlowTests.java",
+    "src/test/java/com/kaoyan/ai/DatabaseDeliverablesTests.java",
+    "src/test/java/com/kaoyan/ai/KaoyanAiApplicationTests.java",
+    "src/test/java/com/kaoyan/ai/LocalDataInitializerTests.java",
+    "src/test/java/com/kaoyan/ai/MysqlPersistenceTests.java"
+  ],
+  "frontendSrc": [
+    "src/api/backend.ts",
+    "src/api/client.ts",
+    "src/api/contract-data.json",
+    "src/api/contract.ts",
+    "src/api/errors.ts",
+    "src/api/generated.ts",
+    "src/api/schema.ts",
+    "src/App.vue",
+    "src/components/AppIcon.vue",
+    "src/components/AsyncState.vue",
+    "src/components/AvatarGuide.vue",
+    "src/components/ChartPanel.vue",
+    "src/components/ChatPanel.vue",
+    "src/components/ContractField.vue",
+    "src/components/ContractResult.vue",
+    "src/components/ContractWorkspace.vue",
+    "src/components/CourseLibrary.vue",
+    "src/components/LiveUnavailable.vue",
+    "src/composables/useLoad.ts",
+    "src/composables/useSpeech.ts",
+    "src/data/demo.ts",
+    "src/domain/contract-ui.ts",
+    "src/domain/logic.ts",
+    "src/domain/session-storage.ts",
+    "src/domain/types.ts",
+    "src/main.ts",
+    "src/router/index.ts",
+    "src/stores/app.ts",
+    "src/stores/catalog.ts",
+    "src/stores/study.ts",
+    "src/styles.css",
+    "src/views/CompanionView.vue",
+    "src/views/DashboardView.vue",
+    "src/views/ExamsView.vue",
+    "src/views/InterviewView.vue",
+    "src/views/LoginView.vue",
+    "src/views/NewsView.vue",
+    "src/views/NotFoundView.vue",
+    "src/views/PlanningView.vue",
+    "src/views/PracticeView.vue",
+    "src/views/ProfessionalCoursesView.vue",
+    "src/views/PublicCoursesView.vue",
+    "src/views/QaView.vue",
+    "src/views/SchoolsView.vue"
+  ],
+  "api": [
+    {
+      "method": "GET",
+      "path": "/api/v1/session/csrf",
+      "handler": "op001",
+      "class": "SupportController",
+      "line": 26,
+      "summary": "获取 CSRF 令牌"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/session/login",
+      "handler": "op002",
+      "class": "SupportController",
+      "line": 35,
+      "summary": "登录"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/session/logout",
+      "handler": "op003",
+      "class": "SupportController",
+      "line": 44,
+      "summary": "退出登录"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/profile",
+      "handler": "op004",
+      "class": "SupportController",
+      "line": 53,
+      "summary": "获取本人备考档案"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/profile",
+      "handler": "op005",
+      "class": "SupportController",
+      "line": 62,
+      "summary": "替换本人备考档案"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/files",
+      "handler": "op006",
+      "class": "SupportController",
+      "line": 71,
+      "summary": "上传私有图片或音频"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/files/{id}",
+      "handler": "op007",
+      "class": "SupportController",
+      "line": 78,
+      "summary": "下载本人私有附件"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/files/{id}",
+      "handler": "op008",
+      "class": "SupportController",
+      "line": 84,
+      "summary": "删除本人附件"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/jobs/{id}",
+      "handler": "op009",
+      "class": "SupportController",
+      "line": 93,
+      "summary": "查询本人异步任务及类型化结果"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/events",
+      "handler": "op010",
+      "class": "SupportController",
+      "line": 102,
+      "summary": "订阅本人 SSE 事件"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/avatar/assets",
+      "handler": "op011",
+      "class": "Module01Controller",
+      "line": 25,
+      "summary": "获取数字人形象与动作素材"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/avatar/preferences",
+      "handler": "op012",
+      "class": "Module01Controller",
+      "line": 34,
+      "summary": "获取数字人偏好"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/avatar/preferences",
+      "handler": "op013",
+      "class": "Module01Controller",
+      "line": 43,
+      "summary": "更新形象模式声音与提醒时间"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/avatar/interactions",
+      "handler": "op014",
+      "class": "Module01Controller",
+      "line": 52,
+      "summary": "文字或语音互动"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/avatar/checkins",
+      "handler": "op015",
+      "class": "Module01Controller",
+      "line": 61,
+      "summary": "每日打卡"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/avatar/supervision",
+      "handler": "op016",
+      "class": "Module01Controller",
+      "line": 70,
+      "summary": "获取督学状态与鼓励"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/avatar/reminders",
+      "handler": "op017",
+      "class": "Module01Controller",
+      "line": 79,
+      "summary": "获取督学提醒设置"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/avatar/reminders",
+      "handler": "op018",
+      "class": "Module01Controller",
+      "line": 88,
+      "summary": "更新督学提醒设置"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/schools/programs",
+      "handler": "op019",
+      "class": "Module02Controller",
+      "line": 25,
+      "summary": "分页查询院校专业"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/schools/recommendations",
+      "handler": "op020",
+      "class": "Module02Controller",
+      "line": 34,
+      "summary": "推荐院校专业"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/schools/programs/{id}/facts",
+      "handler": "op021",
+      "class": "Module02Controller",
+      "line": 43,
+      "summary": "查询院校历史指标"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/schools/comparisons",
+      "handler": "op022",
+      "class": "Module02Controller",
+      "line": 52,
+      "summary": "对比二至四个院校专业"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/schools/evaluations",
+      "handler": "op023",
+      "class": "Module02Controller",
+      "line": 61,
+      "summary": "评估录取概率与风险"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/schools/evaluations/{id}",
+      "handler": "op024",
+      "class": "Module02Controller",
+      "line": 70,
+      "summary": "获取本人择校评估"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/public-courses/knowledge",
+      "handler": "op025",
+      "class": "Module03Controller",
+      "line": 25,
+      "summary": "公共课知识体系"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/public-courses/explanations",
+      "handler": "op026",
+      "class": "Module03Controller",
+      "line": 34,
+      "summary": "分层讲解知识点"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/public-courses/exam-points",
+      "handler": "op027",
+      "class": "Module03Controller",
+      "line": 43,
+      "summary": "高频易错及背诵考点"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/public-courses/english/tasks",
+      "handler": "op028",
+      "class": "Module03Controller",
+      "line": 52,
+      "summary": "英语词汇长难句作文辅导"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/public-courses/politics/tasks",
+      "handler": "op029",
+      "class": "Module03Controller",
+      "line": 61,
+      "summary": "政治大纲预测背诵时政辅导"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/public-courses/math/tasks",
+      "handler": "op030",
+      "class": "Module03Controller",
+      "line": 70,
+      "summary": "数学推导题型与解题指导"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/professional-courses/subjects",
+      "handler": "op031",
+      "class": "Module04Controller",
+      "line": 25,
+      "summary": "获取专业课学科配置"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/professional-courses/knowledge",
+      "handler": "op032",
+      "class": "Module04Controller",
+      "line": 34,
+      "summary": "专业课知识体系"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/professional-courses/book-explanations",
+      "handler": "op033",
+      "class": "Module04Controller",
+      "line": 43,
+      "summary": "参考书章节讲解"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/professional-courses/past-questions",
+      "handler": "op034",
+      "class": "Module04Controller",
+      "line": 52,
+      "summary": "专业课历年真题"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/professional-courses/explanations",
+      "handler": "op035",
+      "class": "Module04Controller",
+      "line": 61,
+      "summary": "专业课真题分层讲解"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/professional-courses/predictions",
+      "handler": "op036",
+      "class": "Module04Controller",
+      "line": 70,
+      "summary": "专业课考点预测"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/qa/conversations",
+      "handler": "op037",
+      "class": "Module05Controller",
+      "line": 25,
+      "summary": "创建多轮答疑会话"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/qa/image-recognitions",
+      "handler": "op038",
+      "class": "Module05Controller",
+      "line": 34,
+      "summary": "识别题目图片"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/qa/conversations/{id}/messages",
+      "handler": "op039",
+      "class": "Module05Controller",
+      "line": 43,
+      "summary": "发送文字题或已确认图片题"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/qa/conversations/{id}/messages",
+      "handler": "op040",
+      "class": "Module05Controller",
+      "line": 52,
+      "summary": "分页获取会话消息"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/qa/messages/{id}",
+      "handler": "op041",
+      "class": "Module05Controller",
+      "line": 61,
+      "summary": "获取最终答疑消息"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/qa/messages/{id}/cancel",
+      "handler": "op042",
+      "class": "Module05Controller",
+      "line": 70,
+      "summary": "取消生成"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/practice/sessions",
+      "handler": "op043",
+      "class": "Module06Controller",
+      "line": 25,
+      "summary": "创建日练周测专项训练"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/practice/sessions/{id}",
+      "handler": "op044",
+      "class": "Module06Controller",
+      "line": 34,
+      "summary": "获取本人练习试题"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/practice/sessions/{id}/attempts",
+      "handler": "op045",
+      "class": "Module06Controller",
+      "line": 43,
+      "summary": "提交单题作答与批改"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/practice/wrong-items",
+      "handler": "op046",
+      "class": "Module06Controller",
+      "line": 52,
+      "summary": "分页查询本人错题"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/practice/wrong-items/{id}/history",
+      "handler": "op047",
+      "class": "Module06Controller",
+      "line": 61,
+      "summary": "分页查询错题作答历史"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/practice/similar-questions",
+      "handler": "op048",
+      "class": "Module06Controller",
+      "line": 70,
+      "summary": "获取同类专项试题"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/practice/knowledge-progress",
+      "handler": "op049",
+      "class": "Module06Controller",
+      "line": 79,
+      "summary": "知识点掌握进度"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/plans",
+      "handler": "op050",
+      "class": "Module07Controller",
+      "line": 25,
+      "summary": "生成候选学习计划"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/plans/{id}",
+      "handler": "op051",
+      "class": "Module07Controller",
+      "line": 34,
+      "summary": "查询日周月学习计划"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/plans/{id}/tasks/{taskId}",
+      "handler": "op052",
+      "class": "Module07Controller",
+      "line": 43,
+      "summary": "调整候选计划任务"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/plans/{id}/confirm",
+      "handler": "op053",
+      "class": "Module07Controller",
+      "line": 52,
+      "summary": "确认候选计划"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/plans/{id}/adjustments",
+      "handler": "op054",
+      "class": "Module07Controller",
+      "line": 61,
+      "summary": "根据进度调整计划"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/plans/{id}/tasks/{taskId}/complete",
+      "handler": "op055",
+      "class": "Module07Controller",
+      "line": 70,
+      "summary": "标记计划任务完成"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/plans/{id}/progress",
+      "handler": "op056",
+      "class": "Module07Controller",
+      "line": 79,
+      "summary": "查询计划完成进度"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/mock-exams/papers",
+      "handler": "op057",
+      "class": "Module08Controller",
+      "line": 25,
+      "summary": "分页查询模考试卷"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/mock-exams/sessions",
+      "handler": "op058",
+      "class": "Module08Controller",
+      "line": 34,
+      "summary": "开始模考"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/mock-exams/sessions/{id}",
+      "handler": "op059",
+      "class": "Module08Controller",
+      "line": 43,
+      "summary": "恢复本人模考会话与已存答案"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/mock-exams/sessions/{id}/answers/{qid}",
+      "handler": "op060",
+      "class": "Module08Controller",
+      "line": 52,
+      "summary": "自动保存单题答案"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/mock-exams/sessions/{id}/submit",
+      "handler": "op061",
+      "class": "Module08Controller",
+      "line": 61,
+      "summary": "交卷并异步评分"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/mock-exams/sessions/{id}/result",
+      "handler": "op062",
+      "class": "Module08Controller",
+      "line": 70,
+      "summary": "查询模考成绩与评分状态"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/mock-exams/papers/{id}/ranking",
+      "handler": "op063",
+      "class": "Module08Controller",
+      "line": 79,
+      "summary": "查询同试卷版本匿名排名"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/mock-exams/estimates",
+      "handler": "op064",
+      "class": "Module08Controller",
+      "line": 88,
+      "summary": "考前估分与冲刺策略"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/interviews",
+      "handler": "op065",
+      "class": "Module09Controller",
+      "line": 25,
+      "summary": "创建专业英语压力复试"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/interviews/{id}/turns",
+      "handler": "op066",
+      "class": "Module09Controller",
+      "line": 34,
+      "summary": "提交复试回答并生成追问"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/interviews/{id}/finish",
+      "handler": "op067",
+      "class": "Module09Controller",
+      "line": 43,
+      "summary": "结束复试并生成总结"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/interviews/{id}/result",
+      "handler": "op068",
+      "class": "Module09Controller",
+      "line": 52,
+      "summary": "查询复试总结"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/interviews/self-introduction-reviews",
+      "handler": "op069",
+      "class": "Module09Controller",
+      "line": 61,
+      "summary": "自我介绍批改"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/interviews/guidance",
+      "handler": "op070",
+      "class": "Module09Controller",
+      "line": 70,
+      "summary": "查询复试礼仪与流程"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/analytics/study-events",
+      "handler": "op071",
+      "class": "Module10Controller",
+      "line": 25,
+      "summary": "记录学习事实"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/analytics/dashboard",
+      "handler": "op072",
+      "class": "Module10Controller",
+      "line": 34,
+      "summary": "学习数据总览与曲线"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/analytics/weakness-radar",
+      "handler": "op073",
+      "class": "Module10Controller",
+      "line": 43,
+      "summary": "薄弱知识点雷达"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/analytics/weekly-reports",
+      "handler": "op074",
+      "class": "Module10Controller",
+      "line": 52,
+      "summary": "本人学习周报"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/news/notices",
+      "handler": "op075",
+      "class": "Module11Controller",
+      "line": 25,
+      "summary": "分页查询政策和院校通知"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/news/notices/{id}/changes",
+      "handler": "op076",
+      "class": "Module11Controller",
+      "line": 34,
+      "summary": "查看政策版本差异"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/news/follows",
+      "handler": "op077",
+      "class": "Module11Controller",
+      "line": 43,
+      "summary": "获取本人关注范围"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/news/follows",
+      "handler": "op078",
+      "class": "Module11Controller",
+      "line": 52,
+      "summary": "更新院校政策关注范围"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/news/milestones",
+      "handler": "op079",
+      "class": "Module11Controller",
+      "line": 61,
+      "summary": "获取报名确认准考证初试日期"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/news/notifications",
+      "handler": "op080",
+      "class": "Module11Controller",
+      "line": 70,
+      "summary": "分页获取本人通知与补取游标"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/news/notifications/{id}/read",
+      "handler": "op081",
+      "class": "Module11Controller",
+      "line": 79,
+      "summary": "标记通知已读"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "handler": "login",
+      "class": "AuthController",
+      "line": 23,
+      "summary": "JWT登录"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/logout",
+      "handler": "logout",
+      "class": "AuthController",
+      "line": 29,
+      "summary": "撤销JWT并退出"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "handler": "me",
+      "class": "AuthController",
+      "line": 27,
+      "summary": "读取当前用户"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/register",
+      "handler": "register",
+      "class": "AuthController",
+      "line": 19,
+      "summary": "新账号注册并自动登录"
+    }
+  ]
+}

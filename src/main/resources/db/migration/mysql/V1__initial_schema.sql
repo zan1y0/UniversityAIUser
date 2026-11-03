@@ -1,0 +1,258 @@
+CREATE TABLE app_users (
+ id VARCHAR(36) PRIMARY KEY, login_name VARCHAR(64) NOT NULL UNIQUE,
+ display_name VARCHAR(64) NOT NULL, password_hash VARCHAR(100) NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE idempotency_records (
+ user_id VARCHAR(36) NOT NULL, operation_id VARCHAR(10) NOT NULL,
+ idem_key VARCHAR(36) NOT NULL, fingerprint VARCHAR(64) NOT NULL,
+ status_code INT NOT NULL, response_body LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY(user_id,operation_id,idem_key),
+ FOREIGN KEY(user_id) REFERENCES app_users(id)
+);
+CREATE TABLE event_outbox (
+ id BIGINT AUTO_INCREMENT PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ event_type VARCHAR(40) NOT NULL, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY(owner_id) REFERENCES app_users(id)
+);
+CREATE INDEX ix_outbox_owner ON event_outbox(owner_id,id);
+CREATE TABLE profiles (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_profiles_owner ON profiles(owner_id,created_at);
+CREATE TABLE avatar_preferences (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_avatar_preferences_owner ON avatar_preferences(owner_id,created_at);
+CREATE TABLE reminder_preferences (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_reminder_preferences_owner ON reminder_preferences(owner_id,created_at);
+CREATE TABLE checkins (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_checkins_owner ON checkins(owner_id,created_at);
+CREATE TABLE programs (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_programs_owner ON programs(owner_id,created_at);
+CREATE TABLE knowledge_trees (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_knowledge_trees_owner ON knowledge_trees(owner_id,created_at);
+CREATE TABLE subjects (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_subjects_owner ON subjects(owner_id,created_at);
+CREATE TABLE books (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_books_owner ON books(owner_id,created_at);
+CREATE TABLE questions (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_questions_owner ON questions(owner_id,created_at);
+CREATE TABLE papers (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_papers_owner ON papers(owner_id,created_at);
+CREATE TABLE evaluations (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_evaluations_owner ON evaluations(owner_id,created_at);
+CREATE TABLE conversations (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_conversations_owner ON conversations(owner_id,created_at);
+CREATE TABLE qa_messages (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_qa_messages_owner ON qa_messages(owner_id,created_at);
+CREATE TABLE recognitions (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_recognitions_owner ON recognitions(owner_id,created_at);
+CREATE TABLE practice_sessions (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_practice_sessions_owner ON practice_sessions(owner_id,created_at);
+CREATE TABLE attempts (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_attempts_owner ON attempts(owner_id,created_at);
+CREATE TABLE wrong_items (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_wrong_items_owner ON wrong_items(owner_id,created_at);
+CREATE TABLE plans (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_plans_owner ON plans(owner_id,created_at);
+CREATE TABLE exam_sessions (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_exam_sessions_owner ON exam_sessions(owner_id,created_at);
+CREATE TABLE exam_submissions (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_exam_submissions_owner ON exam_submissions(owner_id,created_at);
+CREATE TABLE exam_results (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_exam_results_owner ON exam_results(owner_id,created_at);
+CREATE TABLE score_snapshots (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_score_snapshots_owner ON score_snapshots(owner_id,created_at);
+CREATE TABLE interviews (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_interviews_owner ON interviews(owner_id,created_at);
+CREATE TABLE interview_turns (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_interview_turns_owner ON interview_turns(owner_id,created_at);
+CREATE TABLE interview_reports (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_interview_reports_owner ON interview_reports(owner_id,created_at);
+CREATE TABLE study_events (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_study_events_owner ON study_events(owner_id,created_at);
+CREATE TABLE notices (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_notices_owner ON notices(owner_id,created_at);
+CREATE TABLE notice_revisions (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_notice_revisions_owner ON notice_revisions(owner_id,created_at);
+CREATE TABLE news_follows (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_news_follows_owner ON news_follows(owner_id,created_at);
+CREATE TABLE milestones (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_milestones_owner ON milestones(owner_id,created_at);
+CREATE TABLE notifications (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_notifications_owner ON notifications(owner_id,created_at);
+CREATE TABLE jobs (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_jobs_owner ON jobs(owner_id,created_at);
+CREATE TABLE files (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_files_owner ON files(owner_id,created_at);
+CREATE TABLE job_commands (
+ id VARCHAR(100) PRIMARY KEY, owner_id VARCHAR(36) NOT NULL,
+ version INT NOT NULL DEFAULT 1, payload LONGTEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_job_commands_owner ON job_commands(owner_id,created_at);

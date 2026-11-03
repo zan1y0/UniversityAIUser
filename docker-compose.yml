@@ -3,7 +3,7 @@ services:
     image: mysql:8.0
     container_name: kaoyan-ai-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请设置非空的 MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: kaoyan_ai
       TZ: Asia/Shanghai
     ports:

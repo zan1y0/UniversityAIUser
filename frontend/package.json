@@ -1,5 +1,5 @@
 {
-  "name": "kaoyan-ai-frontend",
+  "name": "university-ai-user-page",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -12,9 +12,10 @@
     "build": "npm run typecheck && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run",
-    "format": "prettier --write src tests *.ts *.json index.html README.md deploy/nginx.conf --ignore-unknown",
+    "format": "prettier --write src tests *.ts *.json index.html README.md --ignore-unknown",
     "format:check": "prettier --check src tests *.ts *.json index.html README.md --ignore-unknown",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "contract:generate": "python scripts/generate-contract.py"
   },
   "dependencies": {
     "vue": "^3.5.0",

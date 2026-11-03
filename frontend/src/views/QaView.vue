@@ -25,9 +25,9 @@ function upload(event: Event) {
   if (!file) return;
   if (
     !['image/jpeg', 'image/png', 'image/webp'].includes(file.type) ||
-    file.size > 5 * 1024 * 1024
+    file.size > 10 * 1024 * 1024
   ) {
-    error.value = '请选择不超过 5MB 的 JPG、PNG 或 WebP 图片。';
+    error.value = '请选择不超过 10MB 的 JPG、PNG 或 WebP 图片。';
     input.value = '';
     return;
   }
@@ -67,7 +67,7 @@ onBeforeUnmount(remove);
               accept="image/jpeg,image/png,image/webp"
               aria-label="上传题目图片"
               @change="upload" /></label
-          ><span class="muted small">JPG / PNG / WebP · 最大 5MB</span>
+          ><span class="muted small">JPG / PNG / WebP · 最大 10MB</span>
         </div>
         <p v-if="error" class="inline-error" role="alert">{{ error }}</p>
         <div v-if="preview" class="space-top">
@@ -80,8 +80,7 @@ onBeforeUnmount(remove);
             </div>
           </div>
           <div class="notice">
-            OCR
-            上传与识别接口尚未提供。请自行录入并核对题目文字，确认后作为文字上下文发送；系统不会将预览当作识别结果。
+            演示模式只在本机预览图片，请自行录入并核对题干。真实模式使用图片上传、识别与人工确认流程；图片识别不等于直接获取答案。
           </div>
           <label class="field"
             >题目文字<textarea
@@ -120,7 +119,8 @@ onBeforeUnmount(remove);
           <li>用类似问题检验理解</li>
         </ul>
         <p class="muted small">
-          真实 AI 内容可能出错，请核对公式与依据；当前后端未提供知识引用，页面不会伪造资料来源。
+          真实 AI
+          内容可能出错，请核对公式与依据；真实模式按返回的来源核验，演示模式不会伪造资料出处。
         </p>
       </section>
       <section class="card">

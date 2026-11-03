@@ -36,8 +36,8 @@ async function search() {
 }
 function compare(id: string) {
   if (selected.value.includes(id)) selected.value = selected.value.filter((v) => v !== id);
-  else if (selected.value.length < 3) selected.value.push(id);
-  else app.notify('最多同时对比 3 所院校');
+  else if (selected.value.length < 4) selected.value.push(id);
+  else app.notify('最多同时对比 4 所院校');
 }
 </script>
 <template>
@@ -83,7 +83,7 @@ function compare(id: string) {
     <h2>
       院校推荐 <span class="muted small">{{ filtered.length }} 所</span>
     </h2>
-    <span class="muted small">可选择最多 3 所院校进行对比</span>
+    <span class="muted small">可选择最多 4 所院校进行对比</span>
   </div>
   <div v-if="!filtered.length && status !== 'loading'" class="state-box">
     没有匹配的院校，试试调整筛选条件。

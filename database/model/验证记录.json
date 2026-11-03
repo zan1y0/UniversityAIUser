@@ -1,0 +1,101 @@
+{
+  "date": "2026-10-18",
+  "model": {
+    "tables": 37,
+    "columns": 221,
+    "foreignKeys": 2,
+    "diagrams": 6,
+    "referencesResolved": true,
+    "demoRows": 33,
+    "nativeOpenVerified": false
+  },
+  "sql": {
+    "verificationDatabase": "kaoyan_ai_verify_20261018_7cba44",
+    "schemaExecuted": true,
+    "seedExecuted": true,
+    "seedRepeatSafe": true,
+    "seedCounts": {
+      "app_users": 2,
+      "books": 1,
+      "knowledge_trees": 4,
+      "milestones": 4,
+      "notice_revisions": 1,
+      "notices": 1,
+      "papers": 3,
+      "profiles": 2,
+      "programs": 2,
+      "questions": 12,
+      "subjects": 1
+    },
+    "tableCount": 37,
+    "columnCount": 221,
+    "tableColumnsMatch": true,
+    "verificationDatabaseRemoved": true
+  },
+  "standardMavenVerify": {
+    "exitCode": 0,
+    "tests": [
+      {
+        "class": "com.kaoyan.ai.BackendContractTests",
+        "tests": 17,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.kaoyan.ai.BackendModelFlowTests",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.kaoyan.ai.DatabaseDeliverablesTests",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.kaoyan.ai.KaoyanAiApplicationTests",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.kaoyan.ai.MysqlPersistenceTests",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      }
+    ],
+    "passed": 25,
+    "note": "JDK17在关闭JAR缓存时打印AccessDenied异常，构建最终退出0；全部实际执行的测试报告无失败。"
+  },
+  "explicitMysqlTest": {
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "transactionRollback": true,
+    "database": "kaoyan_ai_verify_20261018_831078"
+  },
+  "document": {
+    "pages": 28,
+    "visualQaPassed": true,
+    "dictionaryTables": 37,
+    "dictionaryColumns": 221,
+    "originalTemplateUnchanged": true,
+    "tocVerified": true
+  },
+  "scope": {
+    "existingDatabase": "kaoyan_ai",
+    "existingBusinessDataModified": false,
+    "flywayV1Changed": false,
+    "openApiChanged": false,
+    "modelOpenedInPowerDesigner": false
+  },
+  "nativeAutomationError": "CO_E_SERVER_EXEC_FAILURE 0x80080005"
+}

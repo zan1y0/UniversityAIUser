@@ -1,0 +1,14 @@
+spring:
+  config:
+    import:
+      - optional:file:./.local-data/mysql-local.properties
+      - optional:file:./.local-data/auth-local.properties
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DB:kaoyan_ai}?characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
+  flyway:
+    locations: classpath:db/migration/mysql
+app:
+  seed-local: false

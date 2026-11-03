@@ -1,0 +1,175 @@
+{
+  "explanation": {
+    "kind": "explanation",
+    "title": "解题方法讲解",
+    "summary": "先明确条件。",
+    "steps": ["识别题目条件", "选择适用的知识点"],
+    "hints": ["先尝试写出第一步"],
+    "method": "检查边界条件",
+    "sources": [],
+    "modelVersion": "fixture-value"
+  },
+  "qa": {
+    "kind": "qa",
+    "message": {
+      "id": "00000008-1111-4111-8111-111111111111",
+      "conversationId": "00000007-1111-4111-8111-111111111111",
+      "role": "assistant",
+      "inputText": "如何分析极限题？",
+      "status": "completed",
+      "guidance": {
+        "steps": ["识别题目条件", "选择适用的知识点"],
+        "hints": ["先尝试写出第一步"],
+        "method": "检查边界条件",
+        "sources": [],
+        "modelVersion": "fixture-value"
+      },
+      "contextVersion": 2,
+      "version": 2,
+      "createdAt": "2026-10-13T09:14:07Z"
+    }
+  },
+  "plan": {
+    "kind": "plan",
+    "plan": {
+      "id": "00000011-1111-4111-8111-111111111111",
+      "status": "draft",
+      "targetDate": "2027-12-20",
+      "dailyMinutes": 240,
+      "profileVersion": 3,
+      "tasks": [
+        {
+          "id": "00000012-1111-4111-8111-111111111111",
+          "subjectId": "00000003-1111-4111-8111-111111111111",
+          "knowledgeId": "00000004-1111-4111-8111-111111111111",
+          "scheduledDate": "2026-10-13",
+          "minutes": 30,
+          "content": "复习极限与连续",
+          "status": "pending",
+          "completedAt": null,
+          "version": 1
+        }
+      ],
+      "view": "week",
+      "viewDate": "2026-10-13",
+      "version": 1,
+      "createdAt": "2026-10-13T09:14:07Z"
+    },
+    "reason": "结合备考时间与基础安排",
+    "sources": [],
+    "modelVersion": "mock-test"
+  },
+  "examScore": {
+    "kind": "examScore",
+    "sessionId": "00000015-1111-4111-8111-111111111111",
+    "paperVersionId": "00000014-1111-4111-8111-111111111111",
+    "scoringStatus": "completed",
+    "objectiveScore": 85,
+    "subjectiveEstimate": 0,
+    "totalScore": 85,
+    "maxScore": 100,
+    "dimensions": [],
+    "weakSubjectIds": [],
+    "rubricVersion": "fixture-value",
+    "modelVersion": null,
+    "scoreSnapshotId": "00000017-1111-4111-8111-111111111111",
+    "version": 1
+  },
+  "avatarInteraction": {
+    "kind": "avatarInteraction",
+    "text": "fixture-value",
+    "transcript": null,
+    "audioFileId": null,
+    "actionCode": "idle",
+    "sources": [],
+    "modelVersion": "fixture-value"
+  },
+  "schoolEvaluation": {
+    "kind": "schoolEvaluation",
+    "id": "11111111-1111-4111-8111-111111111111",
+    "programId": "11111111-1111-4111-8111-111111111111",
+    "status": "insufficient_data",
+    "probability": null,
+    "reason": "fixture-value",
+    "missingFields": [],
+    "risks": [],
+    "sources": [],
+    "modelVersion": "fixture-value",
+    "calibrationVersion": null,
+    "snapshotId": "11111111-1111-4111-8111-111111111111",
+    "createdAt": "2026-10-11T08:00:00Z"
+  },
+  "studyFeedback": {
+    "kind": "studyFeedback",
+    "taskType": "vocabulary",
+    "content": "fixture-value",
+    "corrections": [],
+    "suggestions": [],
+    "sources": [],
+    "modelVersion": "fixture-value"
+  },
+  "prediction": {
+    "kind": "prediction",
+    "subjectId": "11111111-1111-4111-8111-111111111111",
+    "targetYear": 2000,
+    "points": [],
+    "disclaimer": "fixture-value",
+    "sources": [],
+    "modelVersion": "fixture-value"
+  },
+  "recognition": {
+    "kind": "recognition",
+    "id": "11111111-1111-4111-8111-111111111111",
+    "fileId": "11111111-1111-4111-8111-111111111111",
+    "subjectId": "11111111-1111-4111-8111-111111111111",
+    "text": "fixture-value",
+    "confidence": 0,
+    "requiresConfirmation": true,
+    "createdAt": "2026-10-11T08:00:00Z"
+  },
+  "scoreEstimate": {
+    "kind": "scoreEstimate",
+    "estimatedScore": 0,
+    "lowerBound": 0,
+    "upperBound": 0,
+    "strategy": ["fixture-value"],
+    "scoreSnapshotIds": ["11111111-1111-4111-8111-111111111111"],
+    "methodVersion": "fixture-value",
+    "sources": [],
+    "modelVersion": "fixture-value"
+  },
+  "interviewTurn": {
+    "kind": "interviewTurn",
+    "id": "11111111-1111-4111-8111-111111111111",
+    "interviewId": "11111111-1111-4111-8111-111111111111",
+    "transcript": "fixture-value",
+    "followup": {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "text": "fixture-value",
+      "audioFileId": null
+    },
+    "dimensions": [],
+    "suggestions": [],
+    "modelVersion": "fixture-value"
+  },
+  "interviewReport": {
+    "kind": "interviewReport",
+    "interviewId": "11111111-1111-4111-8111-111111111111",
+    "status": "queued",
+    "turns": [],
+    "dimensions": [],
+    "summary": null,
+    "englishSuggestions": [],
+    "rubricVersion": "fixture-value",
+    "version": 1
+  },
+  "introductionReview": {
+    "kind": "introductionReview",
+    "original": "fixture-value",
+    "revised": "fixture-value",
+    "language": "zh-CN",
+    "dimensions": [],
+    "suggestions": [],
+    "modelVersion": "fixture-value"
+  }
+}

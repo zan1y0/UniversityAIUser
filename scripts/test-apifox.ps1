@@ -1,5 +1,8 @@
-param([string]$BaseUrl = 'http://127.0.0.1:8080', [string]$LoginName = 'student', [string]$Password = 'LocalStudy2026!')
+param([string]$BaseUrl = 'http://127.0.0.1:8080', [string]$LoginName = 'student', [string]$Password = $env:LOCAL_STUDENT_PASSWORD)
 $ErrorActionPreference = 'Stop'
+if ([string]::IsNullOrWhiteSpace($Password)) {
+    throw '请设置 LOCAL_STUDENT_PASSWORD 环境变量，或通过 -Password 传入现有账号的密码'
+}
 $projectRoot = Split-Path -Parent $PSScriptRoot
 Set-Location -LiteralPath $projectRoot
 $toolsRoot = Join-Path $projectRoot '.tools/apifox'

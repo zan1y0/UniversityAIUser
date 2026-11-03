@@ -1,15 +1,14 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import type { AppMode, User } from '../domain/types';
+import { useCatalogStore } from './catalog';
+import { clearCsrf } from '../api/client';
+import { sessionValue, saveSessionValue } from '../domain/session-storage';
 
 export const useAppStore = defineStore('app', () => {
-  const mode = ref<AppMode>(
-    sessionStorage.getItem('kaoyan-mode') === 'live' ||
-      (!sessionStorage.getItem('kaoyan-mode') && import.meta.env.VITE_APP_MODE === 'live')
-      ? 'live'
-      : 'demo',
-  );
+  const mode = ref<AppMode>(sessionValue('kaoyan-mode') === 'demo' ? 'demo' : 'live');
   const user = ref<User | null>(null);
+  const sessionChecked = ref(false);
   const toast = ref('');
   const displayName = computed(() =>
     mode.value === 'demo' ? '研途同学' : user.value?.nickname || '访客',
@@ -23,7 +22,10 @@ export const useAppStore = defineStore('app', () => {
   function setMode(value: AppMode) {
     mode.value = value;
     user.value = null;
-    sessionStorage.setItem('kaoyan-mode', value);
+    sessionChecked.value = false;
+    useCatalogStore().reset();
+    clearCsrf();
+    saveSessionValue('kaoyan-mode', value);
   }
-  return { mode, user, toast, displayName, notify, setMode };
+  return { mode, user, sessionChecked, toast, displayName, notify, setMode };
 });

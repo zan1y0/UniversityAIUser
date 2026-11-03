@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, defineAsyncComponent } from 'vue';
+import { backend } from './api/backend';
+const ContractWorkspace = defineAsyncComponent(() => import('./components/ContractWorkspace.vue'));
 import { useRoute, useRouter } from 'vue-router';
 import { modules } from './router';
 import { useAppStore } from './stores/app';
@@ -15,9 +17,14 @@ function switchMode() {
   app.setMode(app.mode === 'demo' ? 'live' : 'demo');
   router.push(app.mode === 'live' ? '/login' : '/dashboard');
 }
-function logout() {
-  app.user = null;
-  router.push('/login');
+async function logout() {
+  try {
+    await backend.logout();
+    app.setMode('live');
+    router.push('/login');
+  } catch (error) {
+    app.notify(error instanceof Error ? error.message : '退出未完成，请重试');
+  }
 }
 function resetDemo() {
   if (window.confirm('清空所有本地演示进度、计划和模考记录？')) {
@@ -106,7 +113,10 @@ function resetDemo() {
         <div v-if="study.storageError" class="notice">
           浏览器存储不可用，演示进度仅保留在当前页面会话。
         </div>
-        <RouterView :key="`${app.mode}-${route.path}`" />
+        <ContractWorkspace v-if="app.mode === 'live' && current" :key="route.path" /><RouterView
+          v-else
+          :key="`${app.mode}-${route.path}`"
+        />
         <footer class="page-footer">
           <span>研途 AI · 把每一次努力，变成看得见的进步</span
           ><button v-if="app.mode === 'demo'" class="text-btn small" @click="resetDemo">
@@ -120,3 +130,10 @@ function resetDemo() {
     <AppIcon name="success" :size="18" />{{ app.toast }}
   </div>
 </template>
+
+<style scoped>
+/* 移动布局仍需要提供退出入口。 */
+.topbar-actions .icon-btn[aria-label='退出登录'] {
+  display: inline-flex;
+}
+</style>

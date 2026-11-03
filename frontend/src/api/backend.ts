@@ -1,115 +1,122 @@
-import { ApiError, isRecord, request } from './client';
-import type { Notice, Question, School, User } from '../domain/types';
+import { execute, waitJob } from './contract';
+import { clearCsrf, ApiError, isRecord, request } from './client';
+import type { User, School, Notice } from '../domain/types';
 
 export const backend = {
-  async login(phone: string, password: string): Promise<User> {
-    const data = await request('/user/login', { method: 'POST', body: { phone, password } });
-    if (
-      !isRecord(data) ||
-      (typeof data.id !== 'string' && typeof data.id !== 'number') ||
-      typeof data.nickname !== 'string'
-    )
-      throw new ApiError('登录响应缺少用户 id 或昵称，请补全后端 UserVO。');
-    if (typeof data.id === 'number' && !Number.isSafeInteger(data.id))
-      throw new ApiError('用户 ID 超出 JavaScript 安全整数范围，请后端将 Long ID 序列化为字符串。');
-    return {
-      id: String(data.id),
-      nickname: data.nickname,
-      targetSchool: typeof data.targetSchool === 'string' ? data.targetSchool : undefined,
-      targetMajor: typeof data.targetMajor === 'string' ? data.targetMajor : undefined,
-    };
+  async login(loginName: string, password: string): Promise<User> {
+    const user = authUser(
+      await request('/auth/login', { method: 'POST', body: { loginName, password } }),
+    );
+    clearCsrf();
+    return user;
   },
-  async chat(message: string, sessionId: string, signal?: AbortSignal): Promise<string> {
-    const data = await request('/ai-chat/chat', {
-      method: 'POST',
-      body: { message, sessionId },
-      signal,
-    });
-    if (typeof data !== 'string' || !data.trim()) throw new ApiError('AI 接口没有返回有效文本。');
-    return data;
+  async register(loginName: string, password: string, displayName: string): Promise<User> {
+    const user = authUser(
+      await request('/auth/register', {
+        method: 'POST',
+        body: { loginName, password, displayName },
+      }),
+    );
+    clearCsrf();
+    return user;
+  },
+  async logout() {
+    await request('/auth/logout', { method: 'POST' });
+    clearCsrf();
+  },
+  async currentUser(): Promise<User> {
+    return authUser(await request('/auth/me'));
+  },
+  async chat(
+    text: string,
+    _context: string,
+    signal = new AbortController().signal,
+  ): Promise<string> {
+    const knowledge = await execute(
+      'op025',
+      { query: { subject: 'math', examType: 'math1', year: new Date().getFullYear() + 1 } },
+      { signal },
+    );
+    const conversation = await execute(
+      'op037',
+      { body: { subjectId: knowledge.subjectId } },
+      { key: crypto.randomUUID(), signal },
+    );
+    const key = crypto.randomUUID();
+    const accepted = await execute(
+      'op039',
+      {
+        path: { id: conversation.id },
+        body: {
+          text,
+          subjectId: knowledge.subjectId,
+          requestId: key,
+          contextVersion: conversation.contextVersion,
+        },
+      },
+      { key, signal },
+    );
+    const result = await waitJob(accepted.jobId, signal);
+    if (!result || result.kind !== 'qa' || !result.message.guidance)
+      throw new ApiError('答疑结果暂不可用');
+    return [
+      ...result.message.guidance.steps,
+      ...result.message.guidance.hints,
+      result.message.guidance.method,
+    ].join('\n');
   },
   async schools(major: string, score: number): Promise<School[]> {
-    const data = await request(
-      `/school/recommend?${new URLSearchParams({ major, score: String(score) })}`,
-    );
-    return requireArray<School>(data, [
-      'id',
-      'name',
-      'region',
-      'major',
-      'difficulty',
-      'line',
-      'enrollment',
-      'ratio',
-      'scoreRange',
-      'risk',
-      'source',
-    ]);
+    const result = await execute('op019', {
+      query: { major, score, year: new Date().getFullYear() + 1 },
+    });
+    return result.items.map((s) => ({
+      id: s.id,
+      name: s.schoolName,
+      region: s.region,
+      major: s.major,
+      difficulty: { easy: '保底', medium: '稳妥', hard: '冲刺' }[s.difficulty],
+      line: s.scoreLine ?? 0,
+      enrollment: s.enrollment ?? 0,
+      ratio: s.admissionRatio?.toString() || '暂无资料',
+      scoreRange: '请参考历史指标',
+      risk: '需要结合本人评估',
+      source: s.sources.map((v) => v.publisher).join('、'),
+    }));
   },
-  async notices(category: string): Promise<Notice[]> {
-    const data = await request(
-      `/news/list?${new URLSearchParams(category === '全部' ? {} : { category })}`,
-    );
-    return requireArray<Notice>(data, [
-      'id',
-      'category',
-      'title',
-      'date',
-      'source',
-      'content',
-      'important',
-    ]);
+  async notices(_category: string): Promise<Notice[]> {
+    const result = await execute('op075', { query: { year: new Date().getFullYear() + 1 } });
+    return result.items.map((n) => ({
+      id: n.id,
+      category: n.category,
+      title: n.title,
+      date: n.publishedAt.slice(0, 10),
+      source: n.sources.map((v) => v.publisher).join('、'),
+      content: n.content,
+      important: n.category === 'policy',
+    }));
   },
-  async questions(userId: string): Promise<Question[]> {
-    const data = await request(`/exam/question?userId=${encodeURIComponent(userId)}`);
-    return requireArray<Question>(data, [
-      'id',
-      'subject',
-      'topic',
-      'stem',
-      'options',
-      'answer',
-      'explanation',
-    ]);
+  async questions(_userId: string): Promise<never> {
+    throw new ApiError('请在练习页创建练习会话后获取题目。');
   },
-  plan(userId: string) {
-    return request(`/study-plan/generate?userId=${encodeURIComponent(userId)}`);
+  async plan(_userId: string) {
+    return execute('op004', {});
   },
-  dashboard(userId: string) {
-    return request(`/dashboard/overview?userId=${encodeURIComponent(userId)}`);
+  async dashboard(_userId: string) {
+    const to = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' });
+    const start = new Date();
+    start.setDate(start.getDate() - 6);
+    return execute('op072', {
+      query: {
+        from: start.toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' }),
+        to,
+        timezone: 'Asia/Shanghai',
+      },
+    });
   },
 };
-function requireArray<T>(data: unknown, fields: string[]): T[] {
-  const values = Array.isArray(data)
-    ? data
-    : isRecord(data) && Array.isArray(data.items)
-      ? data.items
-      : null;
-  if (!values || values.some((item) => !isRecord(item) || fields.some((field) => !(field in item))))
-    throw new ApiError('后端字段尚未对齐前端契约，详见 frontend/README.md。', 'SCHEMA_MISMATCH');
-  // 进一步验证字段类型，避免空架构接口或异常数据进入页面。
-  for (const item of values) {
-    if (!isRecord(item) || typeof item.id !== 'string')
-      throw new ApiError('业务 ID 应为字符串。', 'SCHEMA_MISMATCH');
-    for (const field of fields.filter(
-      (v) => !['id', 'line', 'enrollment', 'options', 'answer', 'important'].includes(v),
-    ))
-      if (typeof item[field] !== 'string')
-        throw new ApiError(`字段 ${field} 应为字符串。`, 'SCHEMA_MISMATCH');
-    for (const field of ['line', 'enrollment', 'answer'].filter((v) => fields.includes(v)))
-      if (typeof item[field] !== 'number' || !Number.isFinite(item[field]))
-        throw new ApiError(`字段 ${field} 应为有效数值。`, 'SCHEMA_MISMATCH');
-    if (fields.includes('important') && typeof item.important !== 'boolean')
-      throw new ApiError('important 应为布尔值。', 'SCHEMA_MISMATCH');
-    if (
-      fields.includes('options') &&
-      (!Array.isArray(item.options) ||
-        item.options.some((v) => typeof v !== 'string') ||
-        !Number.isInteger(item.answer) ||
-        Number(item.answer) < 0 ||
-        Number(item.answer) >= item.options.length)
-    )
-      throw new ApiError('题目选项或答案格式错误。', 'SCHEMA_MISMATCH');
-  }
-  return values as T[];
+
+function authUser(value: unknown): User {
+  if (!isRecord(value) || typeof value.id !== 'string' || typeof value.displayName !== 'string')
+    throw new ApiError('登录响应缺少账号信息', 'INVALID_RESPONSE');
+  return { id: value.id, nickname: value.displayName };
 }

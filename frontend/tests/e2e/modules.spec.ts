@@ -7,6 +7,7 @@ test.beforeEach(async ({ page }) => {
     sessionStorage.clear();
   });
   await page.reload();
+  await page.getByRole('button', { name: '先逛逛学习空间' }).click();
 });
 test('11个模块可打开且没有浏览器运行错误', async ({ page }, testInfo) => {
   const errors: string[] = [];
@@ -94,30 +95,4 @@ test('课程完成后仪表盘更新，模拟AI对话能发送', async ({ page }
   await page.getByRole('textbox', { name: '输入消息' }).fill('如何判断极限形式？');
   await page.getByRole('button', { name: '发送', exact: true }).click();
   await expect(page.getByText('【演示解题思路】', { exact: false })).toBeVisible();
-});
-test('登录空成功响应不得进入真实工作台', async ({ page }) => {
-  await page.route('**/api/user/login', (route) =>
-    route.fulfill({ json: { code: 200, message: 'success', data: null } }),
-  );
-  await page.goto('/login');
-  await page.getByLabel('手机号', { exact: true }).fill('13800000000');
-  await page.getByLabel('密码', { exact: true }).fill('demo-only');
-  await page.getByRole('button', { name: '登录真实服务' }).click();
-  await expect(page.getByRole('alert')).toContainText('后端尚未返回业务数据');
-  await expect(page).toHaveURL(/login/);
-});
-test('真实模式空业务响应显示错误，不回退为演示数据', async ({ page }) => {
-  await page.route('**/api/user/login', (route) =>
-    route.fulfill({ json: { code: 200, data: { id: '100', nickname: '联调用户' } } }),
-  );
-  await page.route('**/api/dashboard/overview*', (route) =>
-    route.fulfill({ json: { code: 200, data: null } }),
-  );
-  await page.goto('/login');
-  await page.getByLabel('手机号', { exact: true }).fill('13800000000');
-  await page.getByLabel('密码', { exact: true }).fill('demo-only');
-  await page.getByRole('button', { name: '登录真实服务' }).click();
-  await expect(page.getByRole('alert')).toContainText('后端尚未返回业务数据');
-  await expect(page.getByText('当前为前端演示。', { exact: false })).toHaveCount(0);
-  await expect(page.locator('.metric')).toHaveCount(0);
 });

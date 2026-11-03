@@ -45,16 +45,25 @@ describe('学习计划日历与容量', () => {
 });
 describe('后端 Result 边界', () => {
   it('拒绝尚未实现接口返回的空成功结果', () => {
-    expect(() => unwrapResult({ code: 200, message: 'success', data: null })).toThrow(
-      '后端尚未返回业务数据',
-    );
+    expect(() =>
+      unwrapResult({ code: 'OK', message: 'success', data: null, traceId: 'trace-test' }),
+    ).toThrow('后端尚未返回业务数据');
   });
   it('业务错误不能作为成功读取', () => {
-    expect(() => unwrapResult({ code: 400, message: '参数错误', data: null })).toThrow('参数错误');
+    expect(() =>
+      unwrapResult({
+        code: 'VALIDATION_FAILED',
+        message: '参数错误',
+        data: null,
+        traceId: 'trace-test',
+      }),
+    ).toThrow('参数错误');
   });
-  it('兼容当前后端和设计契约', () => {
-    expect(unwrapResult({ code: 200, data: '文本' })).toBe('文本');
-    expect(unwrapResult({ code: 'OK', data: [] })).toEqual([]);
+  it('只接受冻结的正式契约，不再兼容数字错误码', () => {
+    expect(() => unwrapResult({ code: 200, data: '文本' })).toThrow('接口约定');
+    expect(unwrapResult({ code: 'OK', message: 'ok', traceId: 'trace-test', data: [] })).toEqual(
+      [],
+    );
   });
 });
 describe('演示缓存恢复', () => {

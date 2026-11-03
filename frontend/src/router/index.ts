@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAppStore } from '../stores/app';
+import { backend } from '../api/backend';
 export const modules = [
   {
     path: '/dashboard',
@@ -105,7 +106,7 @@ const router = createRouter({
   history: createWebHistory(),
   scrollBehavior: () => ({ top: 0 }),
   routes: [
-    { path: '/', redirect: '/dashboard' },
+    { path: '/', redirect: '/login' },
     { path: '/login', component: () => import('../views/LoginView.vue'), meta: { title: '登录' } },
     { path: '/dashboard', component: () => import('../views/DashboardView.vue') },
     { path: '/companion', component: () => import('../views/CompanionView.vue') },
@@ -124,12 +125,32 @@ const router = createRouter({
     { path: '/:pathMatch(.*)*', component: () => import('../views/NotFoundView.vue') },
   ],
 });
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const app = useAppStore();
+  if (app.mode === 'live' && !app.user && !app.sessionChecked && to.path !== '/login') {
+    app.sessionChecked = true;
+    try {
+      app.user = await backend.currentUser();
+    } catch {
+      /* 401或服务不可用时明确进入登录页。 */
+    }
+  }
   if (app.mode === 'live' && !app.user && to.path !== '/login')
     return { path: '/login', query: { redirect: to.fullPath } };
 });
 router.afterEach((to) => {
   document.title = `${modules.find((m) => m.path === to.path)?.title || to.meta.title || '页面'} · 研途 AI`;
+});
+window.addEventListener('auth-expired', () => {
+  const app = useAppStore();
+  if (!app.user) return;
+  app.setMode('live');
+  app.sessionChecked = true;
+  app.notify('登录已过期，请重新登录');
+  if (router.currentRoute.value.path !== '/login')
+    void router.replace({
+      path: '/login',
+      query: { redirect: router.currentRoute.value.fullPath },
+    });
 });
 export default router;
