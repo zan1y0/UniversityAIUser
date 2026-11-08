@@ -19,3 +19,38 @@ test-results/
 playwright-report/
 *.tsbuildinfo
 *.log
+
+# 本机凭据、证书和私钥（可提交空值的 .env.example 模板）
+**/mysql-local.properties
+**/auth-local.properties
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+.aws/
+.ssh/
+
+# 本地数据库、数据库备份及私有上传文件；SQL建表脚本仍保留
+*.db
+*.db-*
+*.mv.db
+*.trace.db
+*.sqlite
+*.sqlite3
+*.dump
+*.dmp
+private-files/
+uploads/
+
+# IDE运行配置、缓存和临时产物
+.run/
+__pycache__/
+*.py[cod]
+.DS_Store
+Thumbs.db
+coverage/
+.coverage
+*.tmp
+*.bak

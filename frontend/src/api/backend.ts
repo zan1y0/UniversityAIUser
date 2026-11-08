@@ -1,19 +1,31 @@
 import { execute, waitJob } from './contract';
-import { clearCsrf, ApiError, isRecord, request } from './client';
+import { clearCsrf, ApiError, isRecord } from './client';
 import type { User, School, Notice } from '../domain/types';
 
 export const backend = {
-  async login(loginName: string, password: string): Promise<User> {
-    const user = authUser(
-      await request('/auth/login', { method: 'POST', body: { loginName, password } }),
+  async avatarChat(
+    text: string,
+    contextId: string,
+    signal = new AbortController().signal,
+  ): Promise<string> {
+    const accepted = await execute(
+      'op014',
+      { body: { text, contextId } },
+      { key: crypto.randomUUID(), signal },
     );
+    const result = await waitJob(accepted.jobId, signal);
+    if (!result || result.kind !== 'avatarInteraction' || !result.text.trim())
+      throw new ApiError('数字人回复暂不可用', 'INVALID_RESPONSE');
+    return result.text;
+  },
+  async login(loginName: string, password: string): Promise<User> {
+    const user = authUser(await execute('op083', { body: { loginName, password } }));
     clearCsrf();
     return user;
   },
   async register(loginName: string, password: string, displayName: string): Promise<User> {
     const user = authUser(
-      await request('/auth/register', {
-        method: 'POST',
+      await execute('op082', {
         body: { loginName, password, displayName },
       }),
     );
@@ -21,11 +33,11 @@ export const backend = {
     return user;
   },
   async logout() {
-    await request('/auth/logout', { method: 'POST' });
+    await execute('op085', {});
     clearCsrf();
   },
   async currentUser(): Promise<User> {
-    return authUser(await request('/auth/me'));
+    return authUser(await execute('op084', {}));
   },
   async chat(
     text: string,

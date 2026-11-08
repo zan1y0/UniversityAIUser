@@ -3,7 +3,9 @@ package com.kaoyan.ai;
 import static com.kaoyan.ai.common.Jsons.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.kaoyan.ai.persistence.*;
+import com.kaoyan.ai.infrastructure.config.LocalDataInitializer;
+import com.kaoyan.ai.persistence.entity.UserAccount;
+import com.kaoyan.ai.persistence.repository.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +35,7 @@ class MysqlPersistenceTests {
     assertEquals("student", accounts.findByLoginName("student").orElseThrow().loginName());
     String user = id();
     accounts.create(
-        new UserAccountRepository.Account(
+        new UserAccount(
             user, "verify_" + user, "MySQL往返验证", "not-a-login-secret"));
     String resource = id();
     var row = obj("id", resource, "version", 1, "content", "数据库初值");

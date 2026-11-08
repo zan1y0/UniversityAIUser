@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kaoyan.ai.persistence.mapper.EventOutboxMapper">
+
+  <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+    INSERT INTO event_outbox(owner_id,event_type,payload) VALUES (#{ownerId},#{eventType},#{payload})
+  </insert>
+  <update id="complete">UPDATE event_outbox SET payload=#{payload} WHERE id=#{id} AND owner_id=#{owner}</update>
+  <select id="latest" resultType="long">SELECT COALESCE(MAX(id),0) FROM event_outbox WHERE owner_id=#{owner}</select>
+  <select id="after" resultType="com.kaoyan.ai.persistence.entity.OutboxRecord">
+    SELECT id,owner_id,event_type,payload FROM event_outbox WHERE owner_id=#{owner} AND id>#{cursor} ORDER BY id LIMIT 100
+  </select>
+</mapper>

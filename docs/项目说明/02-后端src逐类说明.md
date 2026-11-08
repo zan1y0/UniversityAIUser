@@ -1,5 +1,7 @@
 # 02 后端src逐类说明
 
+> 2026-11-08 更新：后端已迁移至 MyBatis，业务包为 `service`，持久化包为 `repository`，新增 `mapper`、`entity`、`config`。当前结构、启动和验证请参阅 [MyBatis 迁移说明](../MyBatis迁移与MySQL验证.md)；下文保留迁移前的说明与验证记录。
+
 [返回文档目录](README.md)
 
 以下Java类均位于`src/main/java/com/kaoyan/ai/`，表格中的类名对应同名`.java`文件。类的实际源码位置、公开方法及注入依赖见[源码索引](05-接口与源码索引.md)。

@@ -1,5 +1,7 @@
 登录注册与JWT已接入，默认首屏为登录页。启动、接口与安全配置见 [登录注册与JWT](docs/登录注册与JWT.md)。
 
+数字人真实聊天已接入异步互动接口，调用流程、IDEA/VS Code 启动方法及验证命令见 [数字人聊天接入](docs/数字人聊天接入.md)。
+
 # UniversityAIUserPage
 
 大学生考研AI导学系统的独立前端。Vue 3 + TypeScript strict + Vite + Pinia + Vue Router，包含原文11个模块。本次只实现、审查与运行前端，不处理Nginx部署或后端业务。
@@ -21,10 +23,10 @@ npm run dev
 
 ## 正式 API 与页面实现
 
-- 唯一接口契约：`contracts/openapi.json` / `openapi.yaml`，对应Apifox“考研 AI 导学系统 · API 契约 v1.0.0”。本次没有更改这份契约。
-- `src/api/generated.ts`：81个操作的TypeScript输入/输出类型及216个Schema类型。
+- 唯一接口契约：`contracts/openapi.json` / `openapi.yaml`，对应Apifox“考研 AI 导学系统 · API 契约 v1.1.0”。已补齐当前JWT认证和聊天附件定义，导入与调试见 [Apifox联调](../apifox/README.md)。
+- `src/api/generated.ts`：86个操作的TypeScript输入/输出类型及222个Schema类型；由契约生成。
 - `src/api/schema.ts` / `contract-data.json`：字段、枚举、必填、边界、条件分支、空值和未知字段的运行时校验。
-- `src/api/client.ts`：Session Cookie、登录前CSRF、统一错误码、traceId、204、FormData、私有下载、请求超时及取消。没有保留旧 `/api/user/login` 适配或数字200成功码兼容。
+- `src/api/client.ts`：JWT Cookie及CSRF Session、注册／登录前CSRF与成功后轮换、统一错误码、traceId、204、FormData、私有下载、请求超时及取消。没有保留旧 `/api/user/login` 适配或数字200成功码兼容。
 - `src/api/contract.ts`：严格操作入口、幂等键、异步任务查询与SSE事件。重试复用原请求体和幂等键，版本冲突不会自动覆盖记录。
 - `src/components/ContractWorkspace.vue`：真实模式的11模块学习操作面板，复用契约表单、关联资料选择、内容与反馈展示。档案在学习计划中维护，附件在答疑、数字人与复试中管理；不新增业务模块。
 - `src/views/`：11模块的本地演示页面与登录页，保留完整原有交互。

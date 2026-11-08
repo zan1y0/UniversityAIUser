@@ -14,8 +14,10 @@ afterEach(() => {
   clearCsrf();
 });
 describe('正式接口契约边界', () => {
-  it('覆盖81个接口与11个业务模块，禁止旧路径', () => {
-    expect(Object.keys(operations)).toHaveLength(81);
+  it('覆盖86个接口与11个业务模块，包含当前JWT与附件接口', () => {
+    expect(Object.keys(operations)).toHaveLength(86);
+    expect(operations.op083?.path).toBe('/api/v1/auth/login');
+    expect(operations.op086?.multipart).toBe(true);
     expect(
       new Set(
         Object.values(operations)

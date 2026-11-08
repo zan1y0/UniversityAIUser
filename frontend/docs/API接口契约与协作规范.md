@@ -1,10 +1,10 @@
-# 考研 AI 导学系统 API 接口契约 v1.0.0
+# 考研 AI 导学系统 API 接口契约 v1.1.0
 
-本契约严格覆盖课程要求的 11 个模块，通用技术目录只包含认证、本人档案、附件、任务和事件。不存在注册、用户列表、用户管理或管理员业务模块。依据为《大学生考研AI导学系统_总体架构设计_MySQL版》。本文件是待实现的正式设计，现有脚手架不代表已实现这些接口。
+本契约覆盖课程要求的 11 个模块，以及认证、本人档案、附件、任务和事件等通用接口。2026-11-05 按当前后端与仓库 frontend 对齐，补齐已实现的 JWT 注册／登录／当前用户／退出和数字人聊天附件上传，共86项接口。注册属于认证支撑，不新增用户管理或管理员模块。完整联调操作见 [Apifox 使用说明](../../apifox/README.md)。接口存在不代表外部模型及所有业务边界已完成真实验收。
 
 ## 1. 唯一契约与协作
 
-`contracts/openapi.json` 与 `contracts/openapi.yaml` 内容一致，是前后端和 Apifox 的正式交换契约。版本号 1.0.0。前端独立 npm 构建，后端独立 Maven 构建；不得把前端构建接入 Maven。Nginx `/` 服务前端 dist，`/api/v1/` 原样转发后端，不删改路径前缀。开发前端代理同一 `/api/v1` 前缀到本地8080，生产统一域名 HTTPS。Apifox 本地直连测试用后端环境；浏览器生产通过 Nginx。
+`contracts/openapi.json` 与 `contracts/openapi.yaml` 内容一致，是前后端和 Apifox 的正式交换契约。版本号 1.1.0；保留原 op001～op081，新增 op082～op086。前端独立 npm 构建，后端独立 Maven 构建；不得把前端构建接入 Maven。Nginx `/` 服务前端 dist，`/api/v1/` 原样转发后端，不删改路径前缀。开发前端代理同一 `/api/v1` 前缀到本地8080，生产统一域名 HTTPS。Apifox 本地直连测试用后端环境；浏览器生产通过 Nginx。服务部署配置以实际环境为准。
 
 字段、方法、路径、返回结构、枚举、状态和错误码以 Schema 为准；不可由任一方临时更名。新增字段也须先修改契约并双方同步；破坏性修改不得覆盖 v1，必须升主版本或取得双方明确迁移约定。Apifox 编辑后先导出审核并更新仓库，禁止只改单一副本。业务未实现接口保持“设计中”，Mock 只用于开发，不能作为真实AI或数据验收。
 
@@ -17,15 +17,15 @@
 | ID | UUID 字符串；事件游标是十进制字符串，不传 Java Long JSON 数值 |
 | 日期 | 本地日期 YYYY-MM-DD；时间戳 UTC ISO8601 且末尾 Z；v1时区 Asia/Shanghai |
 | 缺省与空值 | 请求可选字段省略；仅 Schema 显式 nullable 的字段可传/返回 null；其余拒绝 null |
-| 未知字段 | 所有请求 additionalProperties=false，拒绝拼错字段与擅自添加参数 |
+| 未知字段 | 所有JSON请求 additionalProperties=false，拒绝拼错字段与擅自添加参数；/auth/login与/auth/register的未知字段返回422，其余契约JSON校验返回400 |
 | 成功响应 | `{code:"OK",message:string,data:具体类型,traceId:string}`；HTTP状态区分200/201/202 |
 | 无内容 | 退出与删除附件204，无JSON响应体 |
 | 下载/事件 | 文件原始流和 SSE 不使用JSON成功包装 |
 | 分页 | page从1开始；pageSize默认20、1..100；data={items,page,pageSize,total}；无数据items=[]、total=0 |
 | 分页排序 | 默认创建时间降序、UUID升序稳定排序；会话消息按创建时间升序；通知按eventId降序，afterEventId为严格大于游标；排序规则不由客户端任意更改 |
 | 分数/概率 | JSON数值；分数0..500（单题0..150），保留最多2位小数；概率/正确率/掌握度0..1最多4位小数；未知数据null，不以0代替 |
-| 认证 | HttpOnly SESSION Cookie，Secure、SameSite=Lax，30分钟无活动过期；浏览器credentials=include；禁止传userId选择本人数据 |
-| CSRF | 先GET /session/csrf；所有写请求，包括登录，携带X-CSRF-Token；登录后重新取token |
+| 认证 | 当前前端使用 /auth/*，HttpOnly AUTH_TOKEN Cookie 保存JWT，SameSite=Lax、路径/api/v1，生产Secure，默认1800秒到期；支持Bearer JWT，显式Authorization优先。旧SESSION登录保留兼容。浏览器credentials=include；禁止传userId选择本人数据 |
+| CSRF | 先GET /session/csrf并保存SESSION Cookie；所有写请求，包括注册、登录和Bearer调用，携带同Session绑定的X-CSRF-Token；注册／登录后重新取token。CSRF不替代身份认证 |
 | 幂等 | 标注接口必传Idempotency-Key UUID；requestId/eventId字段如存在必须等于该键；24h同键同体重放原响应，异体409；进处理中返回已有任务，不能重复触发供应商调用 |
 | 版本 | version/contextVersion/progressVersion整数>=1；明确说明的模考首次答案version=0；不匹配409 VERSION_CONFLICT，不自动覆盖 |
 | 权限 | 所有个人资源按session用户校验归属；不存在或非本人返回404；不返回密码、供应商密钥、私有路径 |
@@ -41,7 +41,7 @@
 - HTTP 401：UNAUTHENTICATED, INVALID_CREDENTIALS。
 - HTTP 403：FORBIDDEN, CSRF_REJECTED。
 - HTTP 404：RESOURCE_NOT_FOUND。
-- HTTP 409：VERSION_CONFLICT, INVALID_STATE, IDEMPOTENCY_MISMATCH, PLAN_NOT_DRAFT, EXAM_CLOSED。
+- HTTP 409：VERSION_CONFLICT, INVALID_STATE, IDEMPOTENCY_MISMATCH, PLAN_NOT_DRAFT, EXAM_CLOSED, ACCOUNT_EXISTS。
 - HTTP 422：VALIDATION_FAILED, INSUFFICIENT_INPUT。
 - HTTP 429：RATE_LIMITED。
 - HTTP 500：INTERNAL_ERROR。
@@ -75,6 +75,11 @@ SSE只允许 ai.delta、ai.completed、job.failed、task.reminder、exam.scored�
 | 00 通用技术接口 | GET | `/api/v1/session/csrf` | 获取 CSRF 令牌 |
 | 00 通用技术接口 | POST | `/api/v1/session/login` | 登录 |
 | 00 通用技术接口 | POST | `/api/v1/session/logout` | 退出登录 |
+| 00 通用技术接口 | POST | `/api/v1/auth/register` | 注册并签发JWT Cookie；201 |
+| 00 通用技术接口 | POST | `/api/v1/auth/login` | JWT登录；200；认证后重新获取CSRF |
+| 00 通用技术接口 | GET | `/api/v1/auth/me` | 恢复当前登录用户 |
+| 00 通用技术接口 | POST | `/api/v1/auth/logout` | 撤销JWT并销毁会话；204 |
+| 00 通用技术接口 | POST | `/api/v1/avatar/attachments` | 保存私有聊天附件，返回id；尚不支持交给AI解析 |
 | 00 通用技术接口 | GET | `/api/v1/profile` | 获取本人备考档案 |
 | 00 通用技术接口 | PUT | `/api/v1/profile` | 替换本人备考档案 |
 | 00 通用技术接口 | POST | `/api/v1/files` | 上传私有图片或音频 |
@@ -154,11 +159,13 @@ SSE只允许 ai.delta、ai.completed、job.failed、task.reminder、exam.scored�
 | M11 资讯与政策提醒 | GET | `/api/v1/news/notifications` | 分页获取本人通知与补取游标 |
 | M11 资讯与政策提醒 | POST | `/api/v1/news/notifications/{id}/read` | 标记通知已读 |
 
-## 7. 现有脚手架迁移对照
+旧 `/session/login`、`/session/logout` 已标记 deprecated，保持兼容；旧退出不会撤销 JWT，当前前端及 Apifox 新流程使用 `/auth/logout`。JWT 不在 JSON 响应中返回，Apifox 应启用自动 Cookie 管理。附件上传为 multipart/form-data 的 `file` 字段，非空且最多10MiB，不要求 purpose；音频互动仍使用原 `/files` 的 avatarAudio 用途。
+
+## 7. 历史脚手架迁移对照
 
 | 现有接口/约定 | 正式契约 | 实现要求 |
 |---|---|---|
-| POST /api/user/login {phone,password} | POST /api/v1/session/login {loginName,password} | 修改登录DTO；SESSION/CSRF；不新增注册 |
+| POST /api/user/login {phone,password} | POST /api/v1/auth/login {loginName,password} | 当前前端JWT Cookie/CSRF；注册使用/auth/register；旧/session/login兼容 |
 | GET /api/user/{id}，直接返回User | GET /api/v1/profile | 当前用户从Session获取；安全DTO不返回password |
 | POST /api/ai-chat/chat | POST /api/v1/qa/conversations + messages | 多轮上下文、异步任务、启发式结构响应 |
 | GET /api/dashboard/overview?userId | GET /api/v1/analytics/dashboard | from/to/timezone；去掉userId；真实聚合 |
@@ -170,10 +177,10 @@ SSE只允许 ai.delta、ai.completed、job.failed、task.reminder、exam.scored�
 | 数据库Long/前端demo字符串ID | 公共API UUID字符串 | 后端可保留内部Long，但加稳定公开UUID及索引/映射；不把Long直接当UUID |
 | 前端XSRF-TOKEN/X-XSRF-TOKEN | GET csrf响应+X-CSRF-Token | 更新统一client；禁止读取HttpOnly凭据 |
 
-接口文档冻结不等于后端或前端已经完成对齐。当前后端部分接口为null脚手架，前端部分数据为demo；正式联调验收前必须实现上述迁移以及11模块真实接口。不要让Mock数据混进真实模式。
+上表记录历史迁移方向，当前实现以源码和OpenAPI为准。前端仍有明确标注的演示模式；真实模式不得回退演示数据。未配置模型时按依赖失败处理，不把生成接口存在当成真实AI已验收。
 
 ## 8. 联调验收及文档校验
 
 自动验证 OpenAPI3.1有效性、全部Schema引用、所有参数/请求/响应示例、11模块覆盖、operationId唯一性；负例检查非法UUID、未知字段、无效枚举、错误答案分支、越界概率。接口实现验收另需验证会话隔离、CSRF、幂等重放、并发version冲突、截止交卷、答案不可提前泄露、AI失败与取消；文档验证不能替代实现测试。
 
-Apifox中按tag建立11业务目录和1技术目录，接口保持设计中；先设置后端环境http://127.0.0.1:8080或Nginx环境http://localhost，再按csrf→login→profile顺序调试。同团队文档以本契约版本为准；没有用户管理接口。
+Apifox中按tag建立11业务目录和1技术目录。先配置后端环境http://127.0.0.1:8080，再按csrf→auth/login（或auth/register）→csrf→auth/me→profile顺序调试。接口状态按实际验收结果维护。运行 scripts/sync-contract.py 同步前后端与静态下载副本，使用 --check 检查；再运行 frontend/scripts/generate-contract.py 更新类型和操作元数据。当前没有用户管理接口。

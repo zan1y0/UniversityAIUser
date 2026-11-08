@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kaoyan.ai.persistence.mapper.AggregateMapper">
+
+  <!-- table 是经过白名单验证的 AggregateTable，业务值全部使用 #{} 绑定。 -->
+  <resultMap id="aggregate" type="com.kaoyan.ai.persistence.entity.AggregateRecord">
+    <constructor>
+      <idArg column="id" javaType="java.lang.String"/>
+      <arg column="owner_id" javaType="java.lang.String"/>
+      <arg column="version" javaType="java.lang.Integer"/>
+      <arg column="payload" javaType="java.lang.String"/>
+    </constructor>
+  </resultMap>
+  <insert id="insert">
+    INSERT INTO ${table.name}(id,owner_id,version,payload,created_at,updated_at)
+    VALUES (#{row.id},#{row.ownerId},#{row.version},#{row.payload},CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+  </insert>
+  <select id="findPayload" resultType="string">
+    SELECT payload FROM ${table.name} WHERE id=#{id} AND owner_id=#{owner}
+  </select>
+  <select id="findVersion" resultType="java.lang.Integer">
+    SELECT version FROM ${table.name} WHERE id=#{id} AND owner_id=#{owner}
+  </select>
+  <select id="findByOwner" resultType="string">
+    SELECT payload FROM ${table.name} WHERE owner_id=#{owner} ORDER BY created_at,id
+  </select>
+  <update id="update">
+    UPDATE ${table.name} SET payload=#{row.payload},version=#{row.version},updated_at=CURRENT_TIMESTAMP
+    WHERE id=#{row.id} AND owner_id=#{row.ownerId} AND version=#{expected}
+  </update>
+  <delete id="delete">DELETE FROM ${table.name} WHERE id=#{id} AND owner_id=#{owner}</delete>
+  <select id="scan" resultMap="aggregate">
+    SELECT id,owner_id,version,payload FROM ${table.name} ORDER BY created_at,id
+  </select>
+  <select id="findQueuedJobs" resultMap="aggregate">
+    SELECT id,owner_id,version,payload FROM jobs WHERE payload LIKE '%queued%' ORDER BY created_at LIMIT 10
+  </select>
+</mapper>

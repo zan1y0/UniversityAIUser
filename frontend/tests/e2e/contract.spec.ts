@@ -31,7 +31,12 @@ interface Seen {
 }
 async function mockContract(
   page: Page,
-  options: { pending?: boolean; emptyDashboard?: boolean; conflict?: boolean } = {},
+  options: {
+    pending?: boolean;
+    emptyDashboard?: boolean;
+    conflict?: boolean;
+    authenticated?: boolean;
+  } = {},
 ) {
   const fixtures = structuredClone(fixtureData) as unknown as Record<
     string,
@@ -46,6 +51,7 @@ async function mockContract(
   let lastKind = 'explanation';
   let contextVersion = 1;
   let firstConflict = true;
+  let authenticated = options.authenticated ?? false;
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -77,6 +83,21 @@ async function mockContract(
       return;
     }
     const [id, op] = entry;
+    if (id === 'op084' && !authenticated) {
+      await route.fulfill({
+        status: 401,
+        json: {
+          code: 'UNAUTHENTICATED',
+          message: '请先登录',
+          data: null,
+          traceId: 'mock-test',
+          details: [],
+        },
+      });
+      return;
+    }
+    if (id === 'op082' || id === 'op083') authenticated = true;
+    if (id === 'op085') authenticated = false;
     const body = op.multipart ? {} : request.postDataJSON() || {};
     if (
       !['GET', 'HEAD'].includes(op.method) &&
@@ -210,7 +231,7 @@ async function login(page: Page) {
   await page.reload();
   await page.getByLabel('账号', { exact: true }).fill('student');
   await page.getByLabel('密码', { exact: true }).fill('12345678');
-  await page.getByRole('button', { name: '登录真实服务', exact: true }).click();
+  await page.getByRole('button', { name: '登录学习空间', exact: true }).click();
   await expect(page).toHaveURL(/dashboard/);
   await expect(page.getByRole('status').filter({ hasText: /^已完成$/ })).toBeVisible();
 }
@@ -251,7 +272,7 @@ test('真实登录协议与11个模块的正式页面均能显示', async ({ pag
   await page.screenshot({ path: testInfo.outputPath('live-news.png'), fullPage: true });
   expect(errors).toEqual([]);
   expect(mock.violations).toEqual([]);
-  expect(mock.seen.find((s) => s.id === 'op002')?.body).toEqual({
+  expect(mock.seen.find((s) => s.id === 'op083')?.body).toEqual({
     loginName: 'student',
     password: '12345678',
   });
@@ -359,7 +380,7 @@ test('生成中停止等待并按最新版本取消答疑消息', async ({ page 
   expect(mock.violations).toEqual([]);
 });
 test('刷新真实模式恢复Cookie会话，无业务数据明确报错', async ({ page }) => {
-  const mock = await mockContract(page, { emptyDashboard: true });
+  const mock = await mockContract(page, { emptyDashboard: true, authenticated: true });
   await page.goto('/login');
   await page.evaluate(() => sessionStorage.setItem('kaoyan-mode', 'live'));
   await page.goto('/dashboard');

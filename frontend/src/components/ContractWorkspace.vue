@@ -10,6 +10,7 @@ import { defaultValue, label, technicalFields, today } from '../domain/contract-
 import ContractField from './ContractField.vue';
 import ContractResult from './ContractResult.vue';
 import AvatarGuide from './AvatarGuide.vue';
+import ChatPanel from './ChatPanel.vue';
 import ChartPanel from './ChartPanel.vue';
 import { useSpeech } from '../composables/useSpeech';
 import { sessionValue, saveSessionValue, removeSessionValue } from '../domain/session-storage';
@@ -677,6 +678,12 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <div class="contract-workspace">
+    <ChatPanel
+      v-if="moduleId === 'M01'"
+      purpose="陪伴督学"
+      greeting="你好，我是研小途。今天想先完成什么小目标？"
+      :prompts="['帮我拆解今天的学习目标', '今天有点累，想聊一聊']"
+    />
     <p v-if="initializing" class="notice" role="status">正在载入你的学习资料…</p>
     <p v-if="initError" class="inline-error" role="alert">
       {{ initError }} <button class="text-btn" @click="initialize">重新加载</button>

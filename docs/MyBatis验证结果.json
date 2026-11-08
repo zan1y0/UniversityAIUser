@@ -1,0 +1,115 @@
+{
+  "date": "2026-11-08",
+  "java": "17.0.12",
+  "springBoot": "3.3.5",
+  "mybatisStarter": "3.0.4",
+  "mysql": {
+    "version": "8.0.46",
+    "database": "kaoyan_ai",
+    "flywayVersion": 2,
+    "schemaMigrationRequired": false
+  },
+  "totals": {
+    "tests": 44,
+    "errors": 0,
+    "failures": 0,
+    "skipped": 1
+  },
+  "suites": [
+    {
+      "name": "com.kaoyan.ai.AuthIntegrationTests",
+      "tests": "12",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "time": "23.517"
+    },
+    {
+      "name": "com.kaoyan.ai.BackendContractTests",
+      "tests": "17",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "time": "17.986"
+    },
+    {
+      "name": "com.kaoyan.ai.BackendModelFlowTests",
+      "tests": "3",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "time": "5.151"
+    },
+    {
+      "name": "com.kaoyan.ai.DatabaseDeliverablesTests",
+      "tests": "4",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "time": "1.544"
+    },
+    {
+      "name": "com.kaoyan.ai.KaoyanAiApplicationTests",
+      "tests": "1",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "time": "0.921"
+    },
+    {
+      "name": "com.kaoyan.ai.LocalDataInitializerTests",
+      "tests": "3",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "time": "0.352"
+    },
+    {
+      "name": "com.kaoyan.ai.MybatisMysqlApplicationTests",
+      "tests": "1",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "time": "1.848"
+    },
+    {
+      "name": "com.kaoyan.ai.MybatisMysqlIntegrationTests",
+      "tests": "2",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "time": "0.56"
+    },
+    {
+      "name": "com.kaoyan.ai.MysqlPersistenceTests",
+      "tests": "1",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "1",
+      "time": "0.0"
+    }
+  ],
+  "checks": [
+    "既有34张聚合表的MyBatis与JDBC读取摘要一致",
+    "完整MySQL应用注册、JWT认证和档案读取通过",
+    "CRUD、乐观锁、用户隔离、事件主键和幂等验证通过",
+    "MySQL验证写入使用回滚事务",
+    "Flyway确认MySQL已是V2，无需迁移"
+  ],
+  "note": "旧MysqlPersistenceTests依赖显式临时库参数，仍默认跳过；新增3项MySQL专项测试已实际执行。",
+  "layout": {
+    "rootPackages": [
+      "api",
+      "service",
+      "persistence",
+      "infrastructure",
+      "common"
+    ],
+    "callOrder": [
+      "api",
+      "service",
+      "persistence",
+      "MySQL"
+    ]
+  }
+}

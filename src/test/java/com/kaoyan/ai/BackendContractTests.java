@@ -1,14 +1,15 @@
 package com.kaoyan.ai;
 
 import static com.kaoyan.ai.common.Jsons.*;
-import static com.kaoyan.ai.persistence.LocalDataInitializer.*;
+import static com.kaoyan.ai.infrastructure.config.LocalDataInitializer.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.node.*;
-import com.kaoyan.ai.contract.ContractRegistry;
-import com.kaoyan.ai.persistence.RecordRepository;
+import com.kaoyan.ai.infrastructure.config.LocalDataInitializer;
+import com.kaoyan.ai.api.contract.ContractRegistry;
+import com.kaoyan.ai.persistence.repository.RecordRepository;
 import java.nio.file.*;
 import java.time.*;
 import java.util.*;
@@ -39,6 +40,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
     },
     mergeMode = org.springframework.test.context.TestExecutionListeners.MergeMode.REPLACE_DEFAULTS)
 class BackendContractTests {
+  @Autowired org.springframework.jdbc.core.JdbcTemplate verificationJdbc;
   @BeforeEach
   void before(TestInfo info) {
     System.out.println("业务验证开始：" + info.getDisplayName());
@@ -50,7 +52,7 @@ class BackendContractTests {
   }
 
   @Autowired org.springframework.transaction.PlatformTransactionManager transactionManager;
-  @Autowired com.kaoyan.ai.jobs.ExamDeadlineService deadlineService;
+  @Autowired com.kaoyan.ai.service.task.ExamDeadlineService deadlineService;
   @Autowired MockMvc mvc;
   @Autowired ContractRegistry contract;
   @Autowired RecordRepository db;
@@ -887,7 +889,7 @@ class BackendContractTests {
       assertEquals(one.get(5, TimeUnit.SECONDS), two.get(5, TimeUnit.SECONDS));
       assertEquals(
           1,
-          db.jdbc()
+          verificationJdbc
               .queryForObject(
                   "SELECT COUNT(*) FROM idempotency_records WHERE user_id=? AND"
                       + " operation_id='op043' AND idem_key=?",

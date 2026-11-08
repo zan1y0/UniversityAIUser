@@ -38,6 +38,7 @@ async function send(text = input.value) {
   messages.value.push({ id: crypto.randomUUID(), role: 'user', content: value });
   loading.value = true;
   controller = new AbortController();
+  const current = controller;
   try {
     const history = messages.value
       .slice(0, -1)
@@ -45,21 +46,28 @@ async function send(text = input.value) {
       .map((m) => `${m.role === 'user' ? '用户' : '助手'}：${m.content.slice(0, 1500)}`)
       .join('\n')
       .slice(-6000);
+    const prompt = `[${props.purpose}] ${(props.context || '').slice(0, 4000)}\n以下是此前对话的上下文资料：\n${history}\n当前用户问题：${value}`;
+    // 数字人契约最多接收4000字符，优先完整保留当前问题，再补充近期上下文。
+    const suffix = `\n当前用户问题：${value}`;
+    const avatarText =
+      suffix.length >= 4000
+        ? value
+        : `${prompt.slice(0, -suffix.length).slice(-(4000 - suffix.length))}${suffix}`;
     const content =
       app.mode === 'demo'
         ? sampleReply(value)
-        : await backend.chat(
-            `[${props.purpose}] ${(props.context || '').slice(0, 4000)}\n以下是此前对话的上下文资料：\n${history}\n当前用户问题：${value}`,
-            sessionId,
-            controller.signal,
-          );
-    if (!controller.signal.aborted)
+        : props.purpose === '陪伴督学'
+          ? await backend.avatarChat(avatarText, sessionId, current.signal)
+          : await backend.chat(prompt, sessionId, current.signal);
+    if (controller === current && !current.signal.aborted)
       messages.value.push({ id: crypto.randomUUID(), role: 'assistant', content });
   } catch (e) {
-    error.value = e instanceof Error ? e.message : '对话失败';
-    input.value = value;
+    if (controller === current) {
+      error.value = e instanceof Error ? e.message : '对话失败';
+      input.value = value;
+    }
   } finally {
-    loading.value = false;
+    if (controller === current) loading.value = false;
     await nextTick();
     list.value?.scrollTo({ top: list.value.scrollHeight, behavior: 'smooth' });
   }
@@ -70,6 +78,9 @@ function cancel() {
 }
 function clear() {
   cancel();
+  controller = undefined;
+  loading.value = false;
+  input.value = '';
   messages.value = [{ id: crypto.randomUUID(), role: 'assistant', content: props.greeting }];
   sessionId = crypto.randomUUID();
   error.value = '';

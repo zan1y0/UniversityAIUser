@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "考研 AI 导学系统 · API 契约",
-    "version": "1.0.0",
-    "description": "依据原始11模块及MySQL版总体架构设计冻结。当前为待实现的正式契约，不代表现有后端已实现。示例均为合成数据。所有JSON请求拒绝未知字段；认证采用Session Cookie，写请求必传CSRF。"
+    "version": "1.1.0",
+    "description": "与当前后端和仓库 frontend 对齐的前后端分离契约。新增 JWT 注册/登录/当前用户/退出及数字人附件上传；保留旧 Session 登录兼容。JWT 通过 HttpOnly AUTH_TOKEN Cookie 签发，不在响应 JSON 返回；也接受 Bearer JWT。所有写请求（包括 Bearer 调用、注册和登录）仍须携带 SESSION Cookie 绑定的 X-CSRF-Token。示例均为合成数据。"
   },
   "servers": [
     {
@@ -73,7 +73,7 @@
           "00 通用技术接口"
         ],
         "summary": "获取 CSRF 令牌",
-        "description": "同时建立或复用匿名 Session Cookie；令牌与会话绑定。",
+        "description": "建立或复用 SESSION Cookie 并返回与其绑定的 CSRF 令牌。注册或登录成功后令牌轮换，须重新获取。JWT/Bearer 写请求仍需同一 SESSION Cookie 和 X-CSRF-Token。此接口不代表已登录。",
         "security": [],
         "parameters": [],
         "responses": {
@@ -92,6 +92,14 @@
                     "headerName": "X-CSRF-Token"
                   },
                   "traceId": "example-value"
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "新建会话时设置 SESSION Cookie；已存在会话可能不返回此头。",
+                "schema": {
+                  "type": "string"
                 }
               }
             }
@@ -131,7 +139,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -251,8 +259,8 @@
         "tags": [
           "00 通用技术接口"
         ],
-        "summary": "登录",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "summary": "旧版 Session 登录（兼容）",
+        "description": "仅建立 SESSION 登录身份，不签发 JWT。新前端使用 POST /api/v1/auth/login。成功后重新获取 CSRF。",
         "security": [],
         "parameters": [
           {
@@ -370,7 +378,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -495,7 +503,8 @@
               }
             }
           }
-        }
+        },
+        "deprecated": true
       }
     },
     "/api/v1/session/logout": {
@@ -504,9 +513,15 @@
         "tags": [
           "00 通用技术接口"
         ],
-        "summary": "退出登录",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "summary": "旧版 Session 退出（兼容）",
+        "description": "只销毁 Session，不撤销 AUTH_TOKEN JWT。JWT 登录必须调用 POST /api/v1/auth/logout 退出。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -599,7 +614,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -710,7 +725,8 @@
               }
             }
           }
-        }
+        },
+        "deprecated": true
       }
     },
     "/api/v1/profile": {
@@ -720,8 +736,14 @@
           "00 通用技术接口"
         ],
         "summary": "获取本人备考档案",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -810,7 +832,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -932,6 +954,12 @@
         "description": "完整替换可编辑档案；version 与数据库当前版本一致后递增。",
         "security": [
           {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
+          {
             "SessionCookie": []
           }
         ],
@@ -1050,7 +1078,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -1193,6 +1221,12 @@
         "description": "总文件大小 <=10MiB；qaImage 仅 JPEG/PNG/WebP；音频仅 WAV/MP3/WebM/Ogg，最长 600秒；服务端校验魔数、用途与归属。",
         "security": [
           {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
+          {
             "SessionCookie": []
           }
         ],
@@ -1304,7 +1338,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -1435,8 +1469,14 @@
           "00 通用技术接口"
         ],
         "summary": "下载本人私有附件",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -1574,7 +1614,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -1696,6 +1736,12 @@
         "description": "首先撤销访问，再异步物理清除；正在引用的附件返回 409 INVALID_STATE。",
         "security": [
           {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
+          {
             "SessionCookie": []
           }
         ],
@@ -1802,7 +1848,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -1923,8 +1969,14 @@
           "00 通用技术接口"
         ],
         "summary": "查询本人异步任务及类型化结果",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -2027,7 +2079,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -2148,8 +2200,14 @@
           "00 通用技术接口"
         ],
         "summary": "订阅本人 SSE 事件",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -2234,7 +2292,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -2355,8 +2413,14 @@
           "M01 AI数字人陪伴督学"
         ],
         "summary": "获取数字人形象与动作素材",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -2449,7 +2513,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -2570,8 +2634,14 @@
           "M01 AI数字人陪伴督学"
         ],
         "summary": "获取数字人偏好",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -2652,7 +2722,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -2771,8 +2841,14 @@
           "M01 AI数字人陪伴督学"
         ],
         "summary": "更新形象模式声音与提醒时间",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -2884,7 +2960,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -3025,6 +3101,12 @@
         "description": "contextId 为客户端生成并在当前登录会话复用的 UUID；返回任务 kind=avatarInteraction。语音授权由浏览器用户操作触发；语音失败允许文字降级。",
         "security": [
           {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
+          {
             "SessionCookie": []
           }
         ],
@@ -3149,7 +3231,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -3287,6 +3369,12 @@
         "description": "localDate 必须等于 Asia/Shanghai 当日；用户+日期唯一，不同幂等键也返回已有打卡，不累加次数。",
         "security": [
           {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
+          {
             "SessionCookie": []
           }
         ],
@@ -3411,7 +3499,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -3545,8 +3633,14 @@
           "M01 AI数字人陪伴督学"
         ],
         "summary": "获取督学状态与鼓励",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -3644,7 +3738,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -3765,8 +3859,14 @@
           "M01 AI数字人陪伴督学"
         ],
         "summary": "获取督学提醒设置",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -3846,7 +3946,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -3965,8 +4065,14 @@
           "M01 AI数字人陪伴督学"
         ],
         "summary": "更新督学提醒设置",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -4077,7 +4183,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -4214,8 +4320,14 @@
           "M02 智能择校与专业分析"
         ],
         "summary": "分页查询院校专业",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -4389,7 +4501,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -4510,8 +4622,14 @@
           "M02 智能择校与专业分析"
         ],
         "summary": "推荐院校专业",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -4619,7 +4737,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -4759,8 +4877,14 @@
           "M02 智能择校与专业分析"
         ],
         "summary": "查询院校历史指标",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -4905,7 +5029,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -5026,8 +5150,14 @@
           "M02 智能择校与专业分析"
         ],
         "summary": "对比二至四个院校专业",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -5173,7 +5303,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -5314,6 +5444,12 @@
         "description": "结果 kind=schoolEvaluation。资料或校准不足时 status=insufficient_data 且 probability=null，不生成伪概率。",
         "security": [
           {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
+          {
             "SessionCookie": []
           }
         ],
@@ -5438,7 +5574,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -5574,8 +5710,14 @@
           "M02 智能择校与专业分析"
         ],
         "summary": "获取本人择校评估",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -5680,7 +5822,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -5801,8 +5943,14 @@
           "M03 公共课智能辅导"
         ],
         "summary": "公共课知识体系",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -5926,7 +6074,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -6049,6 +6197,12 @@
         "summary": "分层讲解知识点",
         "description": "version 为知识点内容版本；结果 kind=explanation。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -6174,7 +6328,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -6310,8 +6464,14 @@
           "M03 公共课智能辅导"
         ],
         "summary": "高频易错及背诵考点",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -6421,7 +6581,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -6544,6 +6704,12 @@
         "summary": "英语词汇长难句作文辅导",
         "description": "结果 kind=studyFeedback，taskType 与请求 type 一致。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -6669,7 +6835,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -6807,6 +6973,12 @@
         "description": "recitation 必须提供 content；其他类型 content 可省略。预测需标明来源和非官方性质；结果 kind=studyFeedback。",
         "security": [
           {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
+          {
             "SessionCookie": []
           }
         ],
@@ -6931,7 +7103,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -7069,6 +7241,12 @@
         "description": "结果 kind=studyFeedback。",
         "security": [
           {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
+          {
             "SessionCookie": []
           }
         ],
@@ -7193,7 +7371,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -7328,8 +7506,14 @@
           "M04 专业课学习支持"
         ],
         "summary": "获取专业课学科配置",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -7451,7 +7635,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -7572,8 +7756,14 @@
           "M04 专业课学习支持"
         ],
         "summary": "专业课知识体系",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -7684,7 +7874,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -7807,6 +7997,12 @@
         "summary": "参考书章节讲解",
         "description": "结果 kind=explanation；严格绑定授权参考书版本。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -7932,7 +8128,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -8069,8 +8265,14 @@
           "M04 专业课学习支持"
         ],
         "summary": "专业课历年真题",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -8219,7 +8421,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -8342,6 +8544,12 @@
         "summary": "专业课真题分层讲解",
         "description": "结果 kind=explanation。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -8467,7 +8675,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -8605,6 +8813,12 @@
         "description": "fromYear <= toYear < targetYear；结果 kind=prediction，须标明非官方预测。",
         "security": [
           {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
+          {
             "SessionCookie": []
           }
         ],
@@ -8729,7 +8943,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -8868,8 +9082,14 @@
           "M05 AI答疑与解题"
         ],
         "summary": "创建多轮答疑会话",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -8996,7 +9216,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -9133,6 +9353,12 @@
         "description": "只允许当前用户 qaImage 附件；结果 kind=recognition，必须人工确认题干后发送。",
         "security": [
           {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
+          {
             "SessionCookie": []
           }
         ],
@@ -9257,7 +9483,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -9394,6 +9620,12 @@
         "summary": "发送文字题或已确认图片题",
         "description": "requestId 必须与 Idempotency-Key 相同；先保存输入再生成，contextVersion 并发校验。resultUrl=/api/v1/qa/messages/{messageId}，任务 kind=qa；图片仅返回启发式思路。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -9535,7 +9767,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -9670,8 +9902,14 @@
           "M05 AI答疑与解题"
         ],
         "summary": "分页获取会话消息",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -9793,7 +10031,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -9914,8 +10152,14 @@
           "M05 AI答疑与解题"
         ],
         "summary": "获取最终答疑消息",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -10016,7 +10260,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -10139,6 +10383,12 @@
         "summary": "取消生成",
         "description": "已取消时返回现有消息；完成后不可取消，409 INVALID_STATE。取消后的晚到结果不得复活。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -10269,7 +10519,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -10405,6 +10655,12 @@
         "summary": "创建日练周测专项训练",
         "description": "special 的 knowledgeId 必须非 null；试题不返回答案解析。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -10546,7 +10802,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -10683,8 +10939,14 @@
           "M06 刷题错题本专项训练"
         ],
         "summary": "获取本人练习试题",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -10796,7 +11058,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -10919,6 +11181,12 @@
         "summary": "提交单题作答与批改",
         "description": "requestId=Idempotency-Key；选择项必须属于题目，答案种类必须匹配。确定性客观题批改；主观练习反馈按量规。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -11081,7 +11349,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -11220,8 +11488,14 @@
           "M06 刷题错题本专项训练"
         ],
         "summary": "分页查询本人错题",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -11358,7 +11632,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -11479,8 +11753,14 @@
           "M06 刷题错题本专项训练"
         ],
         "summary": "分页查询错题作答历史",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -11602,7 +11882,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -11726,6 +12006,12 @@
         "description": "排除当前题，只返回已发布且已授权试题。",
         "security": [
           {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
+          {
             "SessionCookie": []
           }
         ],
@@ -11848,7 +12134,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -11969,8 +12255,14 @@
           "M06 刷题错题本专项训练"
         ],
         "summary": "知识点掌握进度",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -12082,7 +12374,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -12205,6 +12497,12 @@
         "summary": "生成候选学习计划",
         "description": "仅生成 draft，不覆盖 active；targetDate 必须晚于当日；结果 kind=plan。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -12330,7 +12628,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -12467,8 +12765,14 @@
           "M07 个性化学习规划"
         ],
         "summary": "查询日周月学习计划",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -12601,7 +12905,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -12724,6 +13028,12 @@
         "summary": "调整候选计划任务",
         "description": "仅 draft；至少提供 scheduledDate/minutes/content 之一；同日总预算不得超计划 dailyMinutes；version 是任务版本。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -12869,7 +13179,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -13006,6 +13316,12 @@
         "summary": "确认候选计划",
         "description": "同一用户目标仅一个 active；事务替换旧 active 为 superseded。重复确认返回同一结果。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -13152,7 +13468,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -13288,6 +13604,12 @@
         "summary": "根据进度调整计划",
         "description": "结果 kind=plan。仅 active 可调整；生成新 draft，已完成事实保留且不可改写。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -13428,7 +13750,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -13566,6 +13888,12 @@
         "summary": "标记计划任务完成",
         "description": "eventId=Idempotency-Key；仅 active；version 是任务版本，完成后取消未触发提醒。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -13726,7 +14054,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -13861,8 +14189,14 @@
           "M07 个性化学习规划"
         ],
         "summary": "查询计划完成进度",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -13978,7 +14312,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -14099,8 +14433,14 @@
           "M08 模考与估分系统"
         ],
         "summary": "分页查询模考试卷",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -14248,7 +14588,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -14371,6 +14711,12 @@
         "summary": "开始模考",
         "description": "requestId=Idempotency-Key；服务端冻结试卷版本、开始时间和截止时间；题目无答案。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -14514,7 +14860,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -14652,6 +14998,12 @@
         "description": "对原有自动保存功能补齐只读恢复接口，不增加业务模块；截止时间由服务端决定。",
         "security": [
           {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
+          {
             "SessionCookie": []
           }
         ],
@@ -14764,7 +15116,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -14887,6 +15239,12 @@
         "summary": "自动保存单题答案",
         "description": "qid 是试题 id；version 是该题答案版本，首次为0；requestId=Idempotency-Key；服务端时间>=deadlineAt 或已交卷返回409 EXAM_CLOSED。成功同时递增会话版本。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -15045,7 +15403,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -15186,6 +15544,12 @@
         "summary": "交卷并异步评分",
         "description": "version 为会话版本；手动/自动交卷只产生一份提交。已自动提交再手动提交返回已有提交，不改变作答。评分失败不撤销提交。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -15330,7 +15694,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -15467,6 +15831,12 @@
         "description": "评分完成前 totalScore=null；客观成绩可先返回。未交卷409 INVALID_STATE；已交卷立即可查状态。",
         "security": [
           {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
+          {
             "SessionCookie": []
           }
         ],
@@ -15571,7 +15941,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -15694,6 +16064,12 @@
         "summary": "查询同试卷版本匿名排名",
         "description": "id 是试卷 id；只比较同一版本已完成有效成绩；同分按提交时间再会话UUID稳定排序。不得返回姓名或用户ID。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -15833,7 +16209,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -15956,6 +16332,12 @@
         "summary": "考前估分与冲刺策略",
         "description": "只接受本人已完成评分快照；结果 kind=scoreEstimate。估分区间不是实际考试结果。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -16081,7 +16463,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -16221,6 +16603,12 @@
         "description": "duration 单位秒；english 模式 language 必须 en-US。consent 是当前模拟训练知情同意，浏览器录音仍需单独用户授权。",
         "security": [
           {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
+          {
             "SessionCookie": []
           }
         ],
@@ -16354,7 +16742,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -16495,6 +16883,12 @@
         "description": "requestId=Idempotency-Key；音频须属于本人且 purpose=interviewAudio；结果 kind=interviewTurn。",
         "security": [
           {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
+          {
             "SessionCookie": []
           }
         ],
@@ -16634,7 +17028,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -16771,6 +17165,12 @@
         "summary": "结束复试并生成总结",
         "description": "前端立即停止录音；重复结束返回同一任务；结果 kind=interviewReport。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -16911,7 +17311,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -17045,8 +17445,14 @@
           "M09 复试AI训练"
         ],
         "summary": "查询复试总结",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -17147,7 +17553,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -17270,6 +17676,12 @@
         "summary": "自我介绍批改",
         "description": "结果 kind=introductionReview。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -17395,7 +17807,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -17531,8 +17943,14 @@
           "M09 复试AI训练"
         ],
         "summary": "查询复试礼仪与流程",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -17644,7 +18062,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -17767,6 +18185,12 @@
         "summary": "记录学习事实",
         "description": "eventId=Idempotency-Key；startAt<endAt<=服务器当前时间，单条不超24小时；taskId需本人；聚合去除重叠区间，focusSelfReport为空时不伪造专注度。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -17899,7 +18323,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -18040,6 +18464,12 @@
         "summary": "学习数据总览与曲线",
         "description": "闭区间本地日期；from<=to，最多366天；时长为去重有效分钟；无作答correctRate=null，无专注样本focus=null。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -18182,7 +18612,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -18305,6 +18735,12 @@
         "summary": "薄弱知识点雷达",
         "description": "from<=to且不超过366天；零样本掌握度 null。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -18431,7 +18867,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -18555,6 +18991,12 @@
         "description": "weekStart 必须是周一；未到生成时机返回 pending，不因GET新建生成任务。",
         "security": [
           {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
+          {
             "SessionCookie": []
           }
         ],
@@ -18666,7 +19108,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -18787,8 +19229,14 @@
           "M11 资讯与政策提醒"
         ],
         "summary": "分页查询政策和院校通知",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -18935,7 +19383,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -19059,6 +19507,12 @@
         "description": "fromVersion<toVersion；仅核验来源发布的版本。",
         "security": [
           {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
+          {
             "SessionCookie": []
           }
         ],
@@ -19178,7 +19632,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -19299,8 +19753,14 @@
           "M11 资讯与政策提醒"
         ],
         "summary": "获取本人关注范围",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -19380,7 +19840,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -19499,8 +19959,14 @@
           "M11 资讯与政策提醒"
         ],
         "summary": "更新院校政策关注范围",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -19611,7 +20077,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -19751,6 +20217,12 @@
         "description": "未核验日期返回null，不根据往年推算冒充官方日期。",
         "security": [
           {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
+          {
             "SessionCookie": []
           }
         ],
@@ -19867,7 +20339,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -19988,8 +20460,14 @@
           "M11 资讯与政策提醒"
         ],
         "summary": "分页获取本人通知与补取游标",
-        "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+        "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -20121,7 +20599,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -20244,6 +20722,12 @@
         "summary": "标记通知已读",
         "description": "重复已读返回当前状态；首次更新进行version校验。",
         "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
           {
             "SessionCookie": []
           }
@@ -20375,7 +20859,7 @@
             }
           },
           "409": {
-            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED",
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
             "content": {
               "application/json": {
                 "schema": {
@@ -20501,6 +20985,883 @@
           }
         }
       }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "operationId": "op082",
+        "tags": [
+          "00 通用技术接口"
+        ],
+        "summary": "注册并登录（JWT）",
+        "description": "通过 Set-Cookie 签发 HttpOnly AUTH_TOKEN JWT，并轮换 SESSION/CSRF；响应 data 仅返回用户信息，没有 token 字段。成功后重新 GET /api/v1/session/csrf。账号重复返回409 ACCOUNT_EXISTS；同连接来源登录/注册合计每分钟最多10次。",
+        "security": [],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "文本"
+            },
+            "description": "从 GET /session/csrf 获取；登录也须携带。",
+            "example": "example-value"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "注册并登录（JWT）成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthUserResponse"
+                },
+                "example": {
+                  "code": "OK",
+                  "message": "操作成功",
+                  "data": {
+                    "id": "11111111-1111-4111-8111-111111111111",
+                    "loginName": "student",
+                    "displayName": "考研同学"
+                  },
+                  "traceId": "example-trace"
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "签发 AUTH_TOKEN JWT Cookie，并更新 SESSION Cookie；客户端须保存所有 Set-Cookie。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error400"
+                },
+                "example": {
+                  "code": "INVALID_REQUEST",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED,INVALID_CREDENTIALS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error401"
+                },
+                "example": {
+                  "code": "UNAUTHENTICATED",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN,CSRF_REJECTED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                },
+                "example": {
+                  "code": "FORBIDDEN",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_CONFLICT,INVALID_STATE,IDEMPOTENCY_MISMATCH,PLAN_NOT_DRAFT,EXAM_CLOSED,ACCOUNT_EXISTS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error409"
+                },
+                "example": {
+                  "code": "VERSION_CONFLICT",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_FAILED,INSUFFICIENT_INPUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error422"
+                },
+                "example": {
+                  "code": "VALIDATION_FAILED",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error429"
+                },
+                "example": {
+                  "code": "RATE_LIMITED",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "重试等待秒数",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 3600
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error500"
+                },
+                "example": {
+                  "code": "INTERNAL_ERROR",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthRegisterInput"
+              },
+              "example": {
+                "loginName": "student",
+                "password": "Example123!",
+                "displayName": "考研同学"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "op083",
+        "tags": [
+          "00 通用技术接口"
+        ],
+        "summary": "登录（JWT）",
+        "description": "通过 Set-Cookie 签发 HttpOnly AUTH_TOKEN JWT，并轮换 SESSION/CSRF；响应 data 仅返回用户信息，没有 token 字段。成功后重新 GET /api/v1/session/csrf。旧 JWT 撤销；同连接来源登录/注册合计每分钟最多10次。",
+        "security": [],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "文本"
+            },
+            "description": "从 GET /session/csrf 获取；登录也须携带。",
+            "example": "example-value"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "登录（JWT）成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthUserResponse"
+                },
+                "example": {
+                  "code": "OK",
+                  "message": "操作成功",
+                  "data": {
+                    "id": "11111111-1111-4111-8111-111111111111",
+                    "loginName": "student",
+                    "displayName": "考研同学"
+                  },
+                  "traceId": "example-trace"
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "签发 AUTH_TOKEN JWT Cookie，并更新 SESSION Cookie；客户端须保存所有 Set-Cookie。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error400"
+                },
+                "example": {
+                  "code": "INVALID_REQUEST",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED,INVALID_CREDENTIALS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error401"
+                },
+                "example": {
+                  "code": "UNAUTHENTICATED",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN,CSRF_REJECTED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                },
+                "example": {
+                  "code": "FORBIDDEN",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_FAILED,INSUFFICIENT_INPUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error422"
+                },
+                "example": {
+                  "code": "VALIDATION_FAILED",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error429"
+                },
+                "example": {
+                  "code": "RATE_LIMITED",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "重试等待秒数",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 3600
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error500"
+                },
+                "example": {
+                  "code": "INTERNAL_ERROR",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthLoginInput"
+              },
+              "example": {
+                "loginName": "student",
+                "password": "Example123!"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "op084",
+        "tags": [
+          "00 通用技术接口"
+        ],
+        "summary": "获取当前登录用户",
+        "description": "恢复当前登录身份；支持 AUTH_TOKEN Cookie、Bearer JWT 或旧 Session。无有效身份返回401。",
+        "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "获取当前登录用户成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthUserResponse"
+                },
+                "example": {
+                  "code": "OK",
+                  "message": "操作成功",
+                  "data": {
+                    "id": "11111111-1111-4111-8111-111111111111",
+                    "loginName": "student",
+                    "displayName": "考研同学"
+                  },
+                  "traceId": "example-trace"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error400"
+                },
+                "example": {
+                  "code": "INVALID_REQUEST",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED,INVALID_CREDENTIALS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error401"
+                },
+                "example": {
+                  "code": "UNAUTHENTICATED",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN,CSRF_REJECTED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                },
+                "example": {
+                  "code": "FORBIDDEN",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_FAILED,INSUFFICIENT_INPUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error422"
+                },
+                "example": {
+                  "code": "VALIDATION_FAILED",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error429"
+                },
+                "example": {
+                  "code": "RATE_LIMITED",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "重试等待秒数",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 3600
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error500"
+                },
+                "example": {
+                  "code": "INTERNAL_ERROR",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "op085",
+        "tags": [
+          "00 通用技术接口"
+        ],
+        "summary": "退出登录并撤销 JWT",
+        "description": "撤销当前 JWT、清除 AUTH_TOKEN Cookie 并销毁 SESSION/CSRF；204 无响应体。",
+        "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "文本"
+            },
+            "description": "从 GET /session/csrf 获取；登录也须携带。",
+            "example": "example-value"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "退出登录并撤销 JWT成功",
+            "headers": {
+              "Set-Cookie": {
+                "description": "清除 AUTH_TOKEN Cookie；同时销毁服务器 SESSION。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error400"
+                },
+                "example": {
+                  "code": "INVALID_REQUEST",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED,INVALID_CREDENTIALS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error401"
+                },
+                "example": {
+                  "code": "UNAUTHENTICATED",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN,CSRF_REJECTED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                },
+                "example": {
+                  "code": "FORBIDDEN",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_FAILED,INSUFFICIENT_INPUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error422"
+                },
+                "example": {
+                  "code": "VALIDATION_FAILED",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error429"
+                },
+                "example": {
+                  "code": "RATE_LIMITED",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "重试等待秒数",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 3600
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error500"
+                },
+                "example": {
+                  "code": "INTERNAL_ERROR",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/avatar/attachments": {
+      "post": {
+        "operationId": "op086",
+        "tags": [
+          "00 通用技术接口"
+        ],
+        "summary": "上传数字人聊天附件",
+        "description": "仅上传并返回私有附件 id，可经 GET /api/v1/files/{id} 下载、DELETE 删除；文件非空且最多10MiB。当前 /avatar/interactions 尚不支持 chatAttachment id；本接口不会解析附件或将其交给模型。语音互动请使用 /files 的 avatarAudio 用途。",
+        "security": [
+          {
+            "JwtCookie": []
+          },
+          {
+            "BearerJwt": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "文本"
+            },
+            "description": "从 GET /session/csrf 获取；登录也须携带。",
+            "example": "example-value"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "上传数字人聊天附件成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatAttachmentResponse"
+                },
+                "example": {
+                  "code": "OK",
+                  "message": "操作成功",
+                  "data": {
+                    "id": "11111111-1111-4111-8111-111111111111"
+                  },
+                  "traceId": "example-trace"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error400"
+                },
+                "example": {
+                  "code": "INVALID_REQUEST",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED,INVALID_CREDENTIALS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error401"
+                },
+                "example": {
+                  "code": "UNAUTHENTICATED",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN,CSRF_REJECTED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                },
+                "example": {
+                  "code": "FORBIDDEN",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_FAILED,INSUFFICIENT_INPUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error422"
+                },
+                "example": {
+                  "code": "VALIDATION_FAILED",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error429"
+                },
+                "example": {
+                  "code": "RATE_LIMITED",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "重试等待秒数",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 3600
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error500"
+                },
+                "example": {
+                  "code": "INTERNAL_ERROR",
+                  "message": "example-value",
+                  "data": null,
+                  "traceId": "example-value",
+                  "details": []
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatAttachmentInput"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -20509,7 +21870,19 @@
         "type": "apiKey",
         "in": "cookie",
         "name": "SESSION",
-        "description": "HttpOnly Session，30分钟无活动失效；前端credentials=include，不读取Cookie值。"
+        "description": "旧登录身份及 CSRF 会话 Cookie；HttpOnly，30分钟无活动过期。JWT 写请求也需要此 Cookie 绑定 CSRF。"
+      },
+      "JwtCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "AUTH_TOKEN",
+        "description": "推荐：/auth/register 或 /auth/login 经 Set-Cookie 签发的 HttpOnly JWT，路径 /api/v1，SameSite=Lax；生产启用 Secure。默认1800秒到期，退出立即撤销。"
+      },
+      "BearerJwt": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "可选：已有有效 JWT 可经 Authorization: Bearer 发送。登录响应 JSON 不提供令牌。写请求仍需 SESSION Cookie 和 CSRF；显式 Authorization 优先于 Cookie，无效时不回退。"
       }
     },
     "schemas": {
@@ -26962,7 +28335,8 @@
               "INVALID_STATE",
               "IDEMPOTENCY_MISMATCH",
               "PLAN_NOT_DRAFT",
-              "EXAM_CLOSED"
+              "EXAM_CLOSED",
+              "ACCOUNT_EXISTS"
             ],
             "description": "固定枚举；区分大小写"
           },
@@ -30894,6 +32268,151 @@
           },
           "data": {
             "$ref": "#/components/schemas/Notification"
+          },
+          "traceId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "description": "文本"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data",
+          "traceId"
+        ],
+        "additionalProperties": false
+      },
+      "AuthLoginInput": {
+        "type": "object",
+        "properties": {
+          "loginName": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 32,
+            "description": "去除首尾空白并转小写后须为3～32位英文字母、数字或下划线；支持大写输入。",
+            "pattern": "^\\s*[A-Za-z0-9_]{3,32}\\s*$"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 72,
+            "writeOnly": true,
+            "description": "UTF-8 编码最多72字节（服务端校验）。注册时还必须同时包含英文字母和数字。"
+          }
+        },
+        "required": [
+          "loginName",
+          "password"
+        ],
+        "additionalProperties": false
+      },
+      "AuthRegisterInput": {
+        "type": "object",
+        "properties": {
+          "loginName": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 32,
+            "description": "去除首尾空白并转小写后须为3～32位英文字母、数字或下划线；支持大写输入。",
+            "pattern": "^\\s*[A-Za-z0-9_]{3,32}\\s*$"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 72,
+            "writeOnly": true,
+            "description": "UTF-8 编码最多72字节（服务端校验）。注册时还必须同时包含英文字母和数字。",
+            "pattern": "^(?=[\\s\\S]*[A-Za-z])(?=[\\s\\S]*[0-9])[\\s\\S]+$"
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "description": "去除首尾空白后1～32字符，不能含控制字符。"
+          }
+        },
+        "required": [
+          "loginName",
+          "password",
+          "displayName"
+        ],
+        "additionalProperties": false
+      },
+      "ChatAttachmentInput": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "description": "非空文件，最多10MiB；原样保存，不进行 MIME 魔数或音频时长检测。"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "additionalProperties": false
+      },
+      "ChatAttachmentCreated": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "AuthUserResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "const": "OK"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "文本"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CurrentUser"
+          },
+          "traceId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "description": "文本"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data",
+          "traceId"
+        ],
+        "additionalProperties": false
+      },
+      "ChatAttachmentResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "const": "OK"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "文本"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ChatAttachmentCreated"
           },
           "traceId": {
             "type": "string",

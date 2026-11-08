@@ -1,16 +1,17 @@
 package com.kaoyan.ai;
 
 import static com.kaoyan.ai.common.Jsons.*;
-import static com.kaoyan.ai.persistence.LocalDataInitializer.*;
+import static com.kaoyan.ai.infrastructure.config.LocalDataInitializer.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.node.*;
-import com.kaoyan.ai.ai.ModelGateway;
+import com.kaoyan.ai.infrastructure.ai.ModelGateway;
 import com.kaoyan.ai.common.*;
-import com.kaoyan.ai.contract.ContractRegistry;
-import com.kaoyan.ai.persistence.RecordRepository;
+import com.kaoyan.ai.infrastructure.config.LocalDataInitializer;
+import com.kaoyan.ai.api.contract.ContractRegistry;
+import com.kaoyan.ai.persistence.repository.RecordRepository;
 import java.util.*;
 import java.util.concurrent.*;
 import org.junit.jupiter.api.*;

@@ -1,0 +1,413 @@
+{
+  "apifoxCli": "1.1.0",
+  "info": {
+    "name": "JWT 注册登录联调 · 独立测试库使用",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "运行12步会创建一个随机测试账号及初始档案；项目没有删除账号接口，账号会保留。仅用于独立测试库，无需预置student账号；无需AI服务。开启Cookie自动管理，保持同一主机名。"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8080"
+    }
+  ],
+  "item": [
+    {
+      "name": "JWT 注册与登录流程",
+      "item": [
+        {
+          "name": "01 获取匿名CSRF并生成测试账号",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/session/csrf"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix=pm.variables.replaceIn(\"{{$randomUUID}}\").replace(/-/g,\"\");",
+                  "pm.collectionVariables.set(\"testLoginName\",\"apifox_\"+suffix.slice(0,20));",
+                  "pm.collectionVariables.set(\"testPassword\",\"Aa1!\"+suffix);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"业务状态\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"csrf\",d.token);"
+                ]
+              }
+            }
+          ],
+          "id": "1",
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 1
+          }
+        },
+        {
+          "name": "02 注册并自动登录",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"loginName\": \"{{testLoginName}}\", \"password\": \"{{testPassword}}\", \"displayName\": \"Apifox测试同学\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\",()=>pm.response.to.have.status(201));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"业务状态\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.test(\"JWT Cookie已签发\",()=>pm.expect(pm.response.headers.all().some(h=>h.key.toLowerCase()===\"set-cookie\" && h.value.startsWith(\"AUTH_TOKEN=\"))).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "id": "2",
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 2
+          }
+        },
+        {
+          "name": "03 注册后更新CSRF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/session/csrf"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"业务状态\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"csrf\",d.token);"
+                ]
+              }
+            }
+          ],
+          "id": "3",
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 3
+          }
+        },
+        {
+          "name": "04 恢复当前用户",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/auth/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"业务状态\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "id": "4",
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 4
+          }
+        },
+        {
+          "name": "05 注册已创建初始备考档案",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/profile"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"业务状态\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "id": "5",
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 5
+          }
+        },
+        {
+          "name": "06 退出并撤销JWT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\",()=>pm.response.to.have.status(204));",
+                  "pm.test(\"204 无响应体\",()=>pm.expect(pm.response.text()).to.eql(\"\"));"
+                ]
+              }
+            }
+          ],
+          "id": "6",
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 6
+          }
+        },
+        {
+          "name": "07 退出后身份失效",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/auth/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\",()=>pm.response.to.have.status(401));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"业务状态\",()=>pm.expect(r.code).to.eql(\"UNAUTHENTICATED\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "id": "7",
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 7
+          }
+        },
+        {
+          "name": "08 重新获取匿名CSRF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/session/csrf"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"业务状态\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"csrf\",d.token);"
+                ]
+              }
+            }
+          ],
+          "id": "8",
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 8
+          }
+        },
+        {
+          "name": "09 使用刚注册账号登录",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"loginName\": \"{{testLoginName}}\", \"password\": \"{{testPassword}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"业务状态\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "id": "9",
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 9
+          }
+        },
+        {
+          "name": "10 登录后更新CSRF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/session/csrf"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"业务状态\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;",
+                  "pm.collectionVariables.set(\"csrf\",d.token);"
+                ]
+              }
+            }
+          ],
+          "id": "10",
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 10
+          }
+        },
+        {
+          "name": "11 登录身份恢复",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/auth/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test(\"traceId 存在\",()=>pm.expect(r.traceId).to.be.a(\"string\"));",
+                  "pm.test(\"业务状态\",()=>pm.expect(r.code).to.eql(\"OK\"));",
+                  "const d=r.data;"
+                ]
+              }
+            }
+          ],
+          "id": "11",
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 11
+          }
+        },
+        {
+          "name": "12 清理登录状态",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\",()=>pm.response.to.have.status(204));",
+                  "pm.test(\"204 无响应体\",()=>pm.expect(pm.response.text()).to.eql(\"\"));"
+                ]
+              }
+            }
+          ],
+          "id": "12",
+          "metaInfo": {
+            "type": "HTTP",
+            "id": 12
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,5 +1,7 @@
 # 本机 MySQL 连接说明
 
+> 2026-11-08 更新：后端已迁移至 MyBatis，业务包为 `service`，持久化包为 `repository`，新增 `mapper`、`entity`、`config`。当前结构、启动和验证请参阅 [MyBatis 迁移说明](MyBatis迁移与MySQL验证.md)；下文保留迁移前的说明与验证记录。
+
 2026-10-15 已完成本机数据库连接、建库和 Flyway 初始化，并通过 IDEA 的 MySQL 运行配置启动后端。
 
 ## 连接参数

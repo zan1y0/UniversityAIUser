@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "schemas": {
     "Source": {
       "type": "object",
@@ -4044,7 +4044,8 @@
             "INVALID_STATE",
             "IDEMPOTENCY_MISMATCH",
             "PLAN_NOT_DRAFT",
-            "EXAM_CLOSED"
+            "EXAM_CLOSED",
+            "ACCOUNT_EXISTS"
           ],
           "description": "固定枚举；区分大小写"
         },
@@ -5722,6 +5723,95 @@
       },
       "required": ["code", "message", "data", "traceId"],
       "additionalProperties": false
+    },
+    "AuthLoginInput": {
+      "type": "object",
+      "properties": {
+        "loginName": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 32,
+          "description": "去除首尾空白并转小写后须为3～32位英文字母、数字或下划线；支持大写输入。",
+          "pattern": "^\\s*[A-Za-z0-9_]{3,32}\\s*$"
+        },
+        "password": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 72,
+          "writeOnly": true,
+          "description": "UTF-8 编码最多72字节（服务端校验）。注册时还必须同时包含英文字母和数字。"
+        }
+      },
+      "required": ["loginName", "password"],
+      "additionalProperties": false
+    },
+    "AuthRegisterInput": {
+      "type": "object",
+      "properties": {
+        "loginName": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 32,
+          "description": "去除首尾空白并转小写后须为3～32位英文字母、数字或下划线；支持大写输入。",
+          "pattern": "^\\s*[A-Za-z0-9_]{3,32}\\s*$"
+        },
+        "password": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 72,
+          "writeOnly": true,
+          "description": "UTF-8 编码最多72字节（服务端校验）。注册时还必须同时包含英文字母和数字。",
+          "pattern": "^(?=[\\s\\S]*[A-Za-z])(?=[\\s\\S]*[0-9])[\\s\\S]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "description": "去除首尾空白后1～32字符，不能含控制字符。"
+        }
+      },
+      "required": ["loginName", "password", "displayName"],
+      "additionalProperties": false
+    },
+    "ChatAttachmentInput": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "format": "binary",
+          "description": "非空文件，最多10MiB；原样保存，不进行 MIME 魔数或音频时长检测。"
+        }
+      },
+      "required": ["file"],
+      "additionalProperties": false
+    },
+    "ChatAttachmentCreated": {
+      "type": "object",
+      "properties": { "id": { "type": "string", "format": "uuid" } },
+      "required": ["id"],
+      "additionalProperties": false
+    },
+    "AuthUserResponse": {
+      "type": "object",
+      "properties": {
+        "code": { "type": "string", "const": "OK" },
+        "message": { "type": "string", "minLength": 1, "maxLength": 200, "description": "文本" },
+        "data": { "$ref": "#/components/schemas/CurrentUser" },
+        "traceId": { "type": "string", "minLength": 1, "maxLength": 64, "description": "文本" }
+      },
+      "required": ["code", "message", "data", "traceId"],
+      "additionalProperties": false
+    },
+    "ChatAttachmentResponse": {
+      "type": "object",
+      "properties": {
+        "code": { "type": "string", "const": "OK" },
+        "message": { "type": "string", "minLength": 1, "maxLength": 200, "description": "文本" },
+        "data": { "$ref": "#/components/schemas/ChatAttachmentCreated" },
+        "traceId": { "type": "string", "minLength": 1, "maxLength": 64, "description": "文本" }
+      },
+      "required": ["code", "message", "data", "traceId"],
+      "additionalProperties": false
     }
   },
   "operations": {
@@ -5730,7 +5820,7 @@
       "method": "GET",
       "title": "获取 CSRF 令牌",
       "tag": "00 通用技术接口",
-      "description": "同时建立或复用匿名 Session Cookie；令牌与会话绑定。",
+      "description": "建立或复用 SESSION Cookie 并返回与其绑定的 CSRF 令牌。注册或登录成功后令牌轮换，须重新获取。JWT/Bearer 写请求仍需同一 SESSION Cookie 和 X-CSRF-Token。此接口不代表已登录。",
       "parameters": [],
       "body": null,
       "multipart": false,
@@ -5741,9 +5831,9 @@
     "op002": {
       "path": "/api/v1/session/login",
       "method": "POST",
-      "title": "登录",
+      "title": "旧版 Session 登录（兼容）",
       "tag": "00 通用技术接口",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "仅建立 SESSION 登录身份，不签发 JWT。新前端使用 POST /api/v1/auth/login。成功后重新获取 CSRF。",
       "parameters": [
         {
           "name": "X-CSRF-Token",
@@ -5763,9 +5853,9 @@
     "op003": {
       "path": "/api/v1/session/logout",
       "method": "POST",
-      "title": "退出登录",
+      "title": "旧版 Session 退出（兼容）",
       "tag": "00 通用技术接口",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "只销毁 Session，不撤销 AUTH_TOKEN JWT。JWT 登录必须调用 POST /api/v1/auth/logout 退出。",
       "parameters": [
         {
           "name": "X-CSRF-Token",
@@ -5787,7 +5877,7 @@
       "method": "GET",
       "title": "获取本人备考档案",
       "tag": "00 通用技术接口",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [],
       "body": null,
       "multipart": false,
@@ -5844,7 +5934,7 @@
       "method": "GET",
       "title": "下载本人私有附件",
       "tag": "00 通用技术接口",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "id",
@@ -5906,7 +5996,7 @@
       "method": "GET",
       "title": "查询本人异步任务及类型化结果",
       "tag": "00 通用技术接口",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "id",
@@ -5933,7 +6023,7 @@
       "method": "GET",
       "title": "订阅本人 SSE 事件",
       "tag": "00 通用技术接口",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "Last-Event-ID",
@@ -5955,7 +6045,7 @@
       "method": "GET",
       "title": "获取数字人形象与动作素材",
       "tag": "M01 AI数字人陪伴督学",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "shapeId",
@@ -5982,7 +6072,7 @@
       "method": "GET",
       "title": "获取数字人偏好",
       "tag": "M01 AI数字人陪伴督学",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [],
       "body": null,
       "multipart": false,
@@ -5995,7 +6085,7 @@
       "method": "PUT",
       "title": "更新形象模式声音与提醒时间",
       "tag": "M01 AI数字人陪伴督学",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "X-CSRF-Token",
@@ -6087,7 +6177,7 @@
       "method": "GET",
       "title": "获取督学状态与鼓励",
       "tag": "M01 AI数字人陪伴督学",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "date",
@@ -6114,7 +6204,7 @@
       "method": "GET",
       "title": "获取督学提醒设置",
       "tag": "M01 AI数字人陪伴督学",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [],
       "body": null,
       "multipart": false,
@@ -6127,7 +6217,7 @@
       "method": "PUT",
       "title": "更新督学提醒设置",
       "tag": "M01 AI数字人陪伴督学",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "X-CSRF-Token",
@@ -6149,7 +6239,7 @@
       "method": "GET",
       "title": "分页查询院校专业",
       "tag": "M02 智能择校与专业分析",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "major",
@@ -6228,7 +6318,7 @@
       "method": "POST",
       "title": "推荐院校专业",
       "tag": "M02 智能择校与专业分析",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "X-CSRF-Token",
@@ -6250,7 +6340,7 @@
       "method": "GET",
       "title": "查询院校历史指标",
       "tag": "M02 智能择校与专业分析",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "id",
@@ -6304,7 +6394,7 @@
       "method": "POST",
       "title": "对比二至四个院校专业",
       "tag": "M02 智能择校与专业分析",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "X-CSRF-Token",
@@ -6361,7 +6451,7 @@
       "method": "GET",
       "title": "获取本人择校评估",
       "tag": "M02 智能择校与专业分析",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "id",
@@ -6388,7 +6478,7 @@
       "method": "GET",
       "title": "公共课知识体系",
       "tag": "M03 公共课智能辅导",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "subject",
@@ -6465,7 +6555,7 @@
       "method": "GET",
       "title": "高频易错及背诵考点",
       "tag": "M03 公共课智能辅导",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "subject",
@@ -6608,7 +6698,7 @@
       "method": "GET",
       "title": "获取专业课学科配置",
       "tag": "M04 专业课学习支持",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "discipline",
@@ -6655,7 +6745,7 @@
       "method": "GET",
       "title": "专业课知识体系",
       "tag": "M04 专业课学习支持",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "subjectId",
@@ -6725,7 +6815,7 @@
       "method": "GET",
       "title": "专业课历年真题",
       "tag": "M04 专业课学习支持",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "subjectId",
@@ -6859,7 +6949,7 @@
       "method": "POST",
       "title": "创建多轮答疑会话",
       "tag": "M05 AI答疑与解题",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "X-CSRF-Token",
@@ -6977,7 +7067,7 @@
       "method": "GET",
       "title": "分页获取会话消息",
       "tag": "M05 AI答疑与解题",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "id",
@@ -7020,7 +7110,7 @@
       "method": "GET",
       "title": "获取最终答疑消息",
       "tag": "M05 AI答疑与解题",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "id",
@@ -7117,7 +7207,7 @@
       "method": "GET",
       "title": "获取本人练习试题",
       "tag": "M06 刷题错题本专项训练",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "id",
@@ -7192,7 +7282,7 @@
       "method": "GET",
       "title": "分页查询本人错题",
       "tag": "M06 刷题错题本专项训练",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "subjectId",
@@ -7248,7 +7338,7 @@
       "method": "GET",
       "title": "分页查询错题作答历史",
       "tag": "M06 刷题错题本专项训练",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "id",
@@ -7343,7 +7433,7 @@
       "method": "GET",
       "title": "知识点掌握进度",
       "tag": "M06 刷题错题本专项训练",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "subjectId",
@@ -7417,7 +7507,7 @@
       "method": "GET",
       "title": "查询日周月学习计划",
       "tag": "M07 个性化学习规划",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "id",
@@ -7674,7 +7764,7 @@
       "method": "GET",
       "title": "查询计划完成进度",
       "tag": "M07 个性化学习规划",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "id",
@@ -7713,7 +7803,7 @@
       "method": "GET",
       "title": "分页查询模考试卷",
       "tag": "M08 模考与估分系统",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "subject",
@@ -8191,7 +8281,7 @@
       "method": "GET",
       "title": "查询复试总结",
       "tag": "M09 复试AI训练",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "id",
@@ -8253,7 +8343,7 @@
       "method": "GET",
       "title": "查询复试礼仪与流程",
       "tag": "M09 复试AI训练",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "type",
@@ -8484,7 +8574,7 @@
       "method": "GET",
       "title": "分页查询政策和院校通知",
       "tag": "M11 资讯与政策提醒",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "programId",
@@ -8586,7 +8676,7 @@
       "method": "GET",
       "title": "获取本人关注范围",
       "tag": "M11 资讯与政策提醒",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [],
       "body": null,
       "multipart": false,
@@ -8599,7 +8689,7 @@
       "method": "PUT",
       "title": "更新院校政策关注范围",
       "tag": "M11 资讯与政策提醒",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "X-CSRF-Token",
@@ -8664,7 +8754,7 @@
       "method": "GET",
       "title": "分页获取本人通知与补取游标",
       "tag": "M11 资讯与政策提醒",
-      "description": "正式契约 v1.0.0；数据来源与授权由服务端验证。",
+      "description": "正式契约 v1.1.0；数据来源与授权由服务端验证。",
       "parameters": [
         {
           "name": "afterEventId",
@@ -8738,6 +8828,107 @@
       "multipart": false,
       "response": { "$ref": "#/components/schemas/Response081" },
       "status": 200,
+      "idempotent": false
+    },
+    "op082": {
+      "path": "/api/v1/auth/register",
+      "method": "POST",
+      "title": "注册并登录（JWT）",
+      "tag": "00 通用技术接口",
+      "description": "通过 Set-Cookie 签发 HttpOnly AUTH_TOKEN JWT，并轮换 SESSION/CSRF；响应 data 仅返回用户信息，没有 token 字段。成功后重新 GET /api/v1/session/csrf。账号重复返回409 ACCOUNT_EXISTS；同连接来源登录/注册合计每分钟最多10次。",
+      "parameters": [
+        {
+          "name": "X-CSRF-Token",
+          "in": "header",
+          "required": true,
+          "schema": { "type": "string", "minLength": 1, "maxLength": 512, "description": "文本" },
+          "description": "从 GET /session/csrf 获取；登录也须携带。",
+          "example": "example-value"
+        }
+      ],
+      "body": { "$ref": "#/components/schemas/AuthRegisterInput" },
+      "multipart": false,
+      "response": { "$ref": "#/components/schemas/AuthUserResponse" },
+      "status": 201,
+      "idempotent": false
+    },
+    "op083": {
+      "path": "/api/v1/auth/login",
+      "method": "POST",
+      "title": "登录（JWT）",
+      "tag": "00 通用技术接口",
+      "description": "通过 Set-Cookie 签发 HttpOnly AUTH_TOKEN JWT，并轮换 SESSION/CSRF；响应 data 仅返回用户信息，没有 token 字段。成功后重新 GET /api/v1/session/csrf。旧 JWT 撤销；同连接来源登录/注册合计每分钟最多10次。",
+      "parameters": [
+        {
+          "name": "X-CSRF-Token",
+          "in": "header",
+          "required": true,
+          "schema": { "type": "string", "minLength": 1, "maxLength": 512, "description": "文本" },
+          "description": "从 GET /session/csrf 获取；登录也须携带。",
+          "example": "example-value"
+        }
+      ],
+      "body": { "$ref": "#/components/schemas/AuthLoginInput" },
+      "multipart": false,
+      "response": { "$ref": "#/components/schemas/AuthUserResponse" },
+      "status": 200,
+      "idempotent": false
+    },
+    "op084": {
+      "path": "/api/v1/auth/me",
+      "method": "GET",
+      "title": "获取当前登录用户",
+      "tag": "00 通用技术接口",
+      "description": "恢复当前登录身份；支持 AUTH_TOKEN Cookie、Bearer JWT 或旧 Session。无有效身份返回401。",
+      "parameters": [],
+      "body": null,
+      "multipart": false,
+      "response": { "$ref": "#/components/schemas/AuthUserResponse" },
+      "status": 200,
+      "idempotent": false
+    },
+    "op085": {
+      "path": "/api/v1/auth/logout",
+      "method": "POST",
+      "title": "退出登录并撤销 JWT",
+      "tag": "00 通用技术接口",
+      "description": "撤销当前 JWT、清除 AUTH_TOKEN Cookie 并销毁 SESSION/CSRF；204 无响应体。",
+      "parameters": [
+        {
+          "name": "X-CSRF-Token",
+          "in": "header",
+          "required": true,
+          "schema": { "type": "string", "minLength": 1, "maxLength": 512, "description": "文本" },
+          "description": "从 GET /session/csrf 获取；登录也须携带。",
+          "example": "example-value"
+        }
+      ],
+      "body": null,
+      "multipart": false,
+      "response": null,
+      "status": 204,
+      "idempotent": false
+    },
+    "op086": {
+      "path": "/api/v1/avatar/attachments",
+      "method": "POST",
+      "title": "上传数字人聊天附件",
+      "tag": "00 通用技术接口",
+      "description": "仅上传并返回私有附件 id，可经 GET /api/v1/files/{id} 下载、DELETE 删除；文件非空且最多10MiB。当前 /avatar/interactions 尚不支持 chatAttachment id；本接口不会解析附件或将其交给模型。语音互动请使用 /files 的 avatarAudio 用途。",
+      "parameters": [
+        {
+          "name": "X-CSRF-Token",
+          "in": "header",
+          "required": true,
+          "schema": { "type": "string", "minLength": 1, "maxLength": 512, "description": "文本" },
+          "description": "从 GET /session/csrf 获取；登录也须携带。",
+          "example": "example-value"
+        }
+      ],
+      "body": { "$ref": "#/components/schemas/ChatAttachmentInput" },
+      "multipart": true,
+      "response": { "$ref": "#/components/schemas/ChatAttachmentResponse" },
+      "status": 201,
       "idempotent": false
     }
   }

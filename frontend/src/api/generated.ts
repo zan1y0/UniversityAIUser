@@ -1,5 +1,5 @@
 // 从 contracts/openapi.json 生成；禁止手工修改。
-export const CONTRACT_VERSION = '1.0.0';
+export const CONTRACT_VERSION = '1.1.0';
 export type Source = {
   title: string;
   url: string;
@@ -730,7 +730,8 @@ export type Error409 = {
     | 'INVALID_STATE'
     | 'IDEMPOTENCY_MISMATCH'
     | 'PLAN_NOT_DRAFT'
-    | 'EXAM_CLOSED';
+    | 'EXAM_CLOSED'
+    | 'ACCOUNT_EXISTS';
   message: string;
   data: null;
   traceId: string;
@@ -962,6 +963,17 @@ export type NotificationPage = {
 export type Response080 = { code: 'OK'; message: string; data: NotificationPage; traceId: string };
 export type NotificationReadInput = { version: number };
 export type Response081 = { code: 'OK'; message: string; data: Notification; traceId: string };
+export type AuthLoginInput = { loginName: string; password: string };
+export type AuthRegisterInput = { loginName: string; password: string; displayName: string };
+export type ChatAttachmentInput = { file: string };
+export type ChatAttachmentCreated = { id: string };
+export type AuthUserResponse = { code: 'OK'; message: string; data: CurrentUser; traceId: string };
+export type ChatAttachmentResponse = {
+  code: 'OK';
+  message: string;
+  data: ChatAttachmentCreated;
+  traceId: string;
+};
 export interface Operations {
   op001: { input: {}; output: Csrf };
   op002: { input: { body: LoginInput }; output: CurrentUser };
@@ -1176,4 +1188,9 @@ export interface Operations {
     output: NotificationPage;
   };
   op081: { input: { path: { id: string }; body: NotificationReadInput }; output: Notification };
+  op082: { input: { body: AuthRegisterInput }; output: CurrentUser };
+  op083: { input: { body: AuthLoginInput }; output: CurrentUser };
+  op084: { input: {}; output: CurrentUser };
+  op085: { input: {}; output: undefined };
+  op086: { input: { body: FormData }; output: ChatAttachmentCreated };
 }

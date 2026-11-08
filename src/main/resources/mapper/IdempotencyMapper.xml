@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kaoyan.ai.persistence.mapper.IdempotencyMapper">
+
+  <resultMap id="entry" type="com.kaoyan.ai.persistence.entity.IdempotencyEntry">
+    <constructor>
+      <arg column="fingerprint" javaType="java.lang.String"/>
+      <arg column="status_code" javaType="_int"/>
+      <arg column="response_body" javaType="java.lang.String"/>
+      <arg column="created_at" javaType="java.time.Instant"/>
+    </constructor>
+  </resultMap>
+  <select id="find" resultMap="entry">
+    SELECT fingerprint,status_code,response_body,created_at FROM idempotency_records
+    WHERE user_id=#{user} AND operation_id=#{operation} AND idem_key=#{key}
+  </select>
+  <insert id="insert">
+    INSERT INTO idempotency_records(user_id,operation_id,idem_key,fingerprint,status_code,response_body)
+    VALUES (#{user},#{operation},#{key},#{fingerprint},#{status},#{response})
+  </insert>
+  <delete id="delete">
+    DELETE FROM idempotency_records WHERE user_id=#{user} AND operation_id=#{operation} AND idem_key=#{key}
+  </delete>
+</mapper>

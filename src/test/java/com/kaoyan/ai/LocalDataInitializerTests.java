@@ -3,9 +3,9 @@ package com.kaoyan.ai;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import com.kaoyan.ai.persistence.LocalDataInitializer;
-import com.kaoyan.ai.persistence.RecordRepository;
-import com.kaoyan.ai.persistence.UserAccountRepository;
+import com.kaoyan.ai.infrastructure.config.LocalDataInitializer;
+import com.kaoyan.ai.persistence.repository.RecordRepository;
+import com.kaoyan.ai.persistence.repository.UserAccountRepository;
 import org.junit.jupiter.api.Test;
 
 class LocalDataInitializerTests {

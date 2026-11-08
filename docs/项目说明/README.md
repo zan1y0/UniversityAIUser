@@ -1,8 +1,14 @@
 # UniversityAIUser 项目说明文档
 
+> 当前 Java 包已按 5 个功能组整理，最新目录与调用关系见 [包目录与调用顺序](../包目录与调用顺序.md)。下文分层名称如与当前源码不一致，以该说明为准。
+
+当前 MyBatis 架构与 MySQL 验证见 [MyBatis迁移与MySQL验证](../MyBatis迁移与MySQL验证.md)。
+
+迁移前的后端独立说明（2026-11-04）见 [后端项目说明：包与类详解](../后端项目说明-包与类详解.md)，覆盖当前工作区全部后端包、类及新增聊天附件入口。下方原有系列文档保留各自整理时的范围与日期。
+
 整理日期：2026-10-23。内容依据当前本机源码，重点解释目录、类的职责及实际调用关系；不把规划中的能力描述为已实现功能。
 
-后端：`D:\STUDY\UniversityAIUser`。实际使用的前端：`C:\Users\jack\Desktop\UniversityAIUserPage`。
+后端：`D:\STUDY\UniversityAIUser`。前端源码：本仓库 `frontend/`。
 
 ## 文档目录
 
@@ -18,9 +24,9 @@
 
 ## 先明确的五件事
 
-1. **真正的前端是桌面的 UniversityAIUserPage。** 后端仓库中虽然还有 `frontend/`，但其内容较旧，不是当前VS Code联调使用的项目。
-2. **后端使用 JdbcTemplate。** 当前没有实现MyBatis Mapper接口或JPA实体仓库；`resources/mapper/`只有占位文件。
-3. **多数业务接口通过统一执行器处理。** 典型路径是 `Controller → ApiExecutor → DomainDispatcher → 业务Service → Repository`。新增 `/auth/*` 认证接口直接进入 `AuthService`，是一个明确例外。
+1. **前端源码位于本仓库 `frontend/`。** 前后端分别构建和启动。
+2. **后端使用 MyBatis。** `mapper/` 定义接口，`resources/mapper/` 定义 SQL，`entity/` 定义映射类型，`repository/` 适配聚合，`service/` 处理业务。
+3. **多数业务接口通过统一执行器处理。** 典型路径是 `Controller → ApiExecutor → DomainDispatcher → 业务Service → Repository → Mapper → MySQL`。新增 `/auth/*` 认证接口直接进入 `AuthService`，是一个明确例外。
 4. **真实模式与演示模式的页面入口不同。** 真实模式主要由 `ContractWorkspace.vue`调用正式接口；演示模式由各模块View配合本地示例数据工作。
 5. **接口契约、权限及数据库是不同层。** OpenAPI约束字段，安全层确认身份和CSRF，业务层处理规则，持久层负责SQL和所有者隔离。
 

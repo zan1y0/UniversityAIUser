@@ -6,13 +6,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.kaoyan.ai.persistence.UserAccountRepository;
-import com.kaoyan.ai.security.JwtService;
+import com.kaoyan.ai.persistence.repository.UserAccountRepository;
+import com.kaoyan.ai.service.auth.JwtService;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import jakarta.servlet.http.Cookie;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
+import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -23,9 +26,6 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
 import org.springframework.test.web.servlet.*;
 
 @SpringBootTest(properties = {
@@ -41,6 +41,10 @@ class AuthIntegrationTests {
   @Autowired MockMvc mvc;
   @Autowired UserAccountRepository accounts;
   @Autowired JdbcTemplate jdbc;
+  @Autowired com.kaoyan.ai.api.contract.ContractRegistry contract;
+  @Autowired
+  @org.springframework.beans.factory.annotation.Qualifier("requestMappingHandlerMapping")
+  org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping mappings;
   private static final String PASSWORD = "Study2026!";
   private final String name = "u_" + UUID.randomUUID().toString().replace("-", "").substring(0, 20);
   private final String ip = UUID.randomUUID().toString();
@@ -60,7 +64,14 @@ class AuthIntegrationTests {
         .with(r -> { r.setRemoteAddr(ip); return r; });
     if (body != null) request.contentType(MediaType.APPLICATION_JSON).content(body.toString());
     if (cookie != null) request.cookie(cookie);
-    return mvc.perform(request).andExpect(status().is(expected)).andReturn();
+    MvcResult result = mvc.perform(request).andExpect(status().is(expected)).andReturn();
+    if (expected != 204) {
+      String op = switch (route) { case "register" -> "op082"; case "login" -> "op083"; default -> "op085"; };
+      contract.validate(contract.operation(op).path("responses").path(Integer.toString(expected))
+          .path("content").path("application/json").path("schema"),
+          parse(result.getResponse().getContentAsString()), 500);
+    }
+    return result;
   }
   private void register() throws Exception {
     csrf();
@@ -152,6 +163,45 @@ class AuthIntegrationTests {
   @Test void protectedEndpointsRequireAuthentication() throws Exception {
     mvc.perform(get("/api/v1/auth/me")).andExpect(status().isUnauthorized());
     mvc.perform(get("/api/v1/profile")).andExpect(status().isUnauthorized());
+  }
+
+  @Test void controllerRoutesMatchPublishedContract() throws Exception {
+    JsonNode spec = com.kaoyan.ai.common.Jsons.MAPPER.readTree(
+        new org.springframework.core.io.ClassPathResource("contract/openapi.json").getInputStream());
+    java.util.Set<String> documented = new java.util.HashSet<>();
+    spec.path("paths").fields().forEachRemaining(p -> p.getValue().fieldNames()
+        .forEachRemaining(m -> documented.add(m.toUpperCase() + " " + p.getKey())));
+    java.util.Set<String> implemented = new java.util.HashSet<>();
+    mappings.getHandlerMethods().forEach((mapping, handler) -> {
+      for (String path : mapping.getPatternValues())
+        if (path.startsWith("/api/v1/"))
+          for (var method : mapping.getMethodsCondition().getMethods())
+            implemented.add(method.name() + " " + path);
+    });
+    assertEquals(documented, implemented);
+  }
+
+  @Test void rejectsUnknownAuthFields() throws Exception {
+    csrf();
+    write("register", obj("loginName", name, "password", PASSWORD, "displayName", "同学", "userId", name), 422);
+    assertTrue(accounts.findByLoginName(name).isEmpty());
+  }
+
+  @Test void jwtChatAttachmentMatchesContractAndCanBeDownloaded() throws Exception {
+    register();
+    byte[] bytes = "attachment contract test".getBytes(StandardCharsets.UTF_8);
+    var result = mvc.perform(multipart("/api/v1/avatar/attachments")
+        .file(new org.springframework.mock.web.MockMultipartFile("file", "notes.txt", "text/plain", bytes))
+        .session(session).cookie(cookie).header("X-CSRF-Token", csrf))
+        .andExpect(status().isCreated()).andReturn();
+    JsonNode response = parse(result.getResponse().getContentAsString());
+    contract.validate(contract.operation("op086").path("responses").path("201")
+        .path("content").path("application/json").path("schema"), response, 500);
+    String fileId = response.path("data").path("id").asText();
+    mvc.perform(get("/api/v1/files/" + fileId).cookie(cookie)).andExpect(status().isOk())
+        .andExpect(content().bytes(bytes));
+    mvc.perform(delete("/api/v1/files/" + fileId).session(session).cookie(cookie)
+        .header("X-CSRF-Token", csrf)).andExpect(status().isNoContent());
   }
 
   @Test void rejectsSignedExpiredWrongIssuerAndAudience() throws Exception {

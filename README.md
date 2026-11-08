@@ -1,5 +1,11 @@
 本仓库包含同一个软件项目的后端 UniversityAIUser 与前端 UniversityAIUserPage：后端位于根目录，最新前端源码收录在 `frontend/`。登录／注册与 JWT 认证说明见 [登录注册与JWT](docs/登录注册与JWT.md)。
 
+当前包目录已按功能归组，阅读顺序见 [包目录与调用顺序](docs/包目录与调用顺序.md)。
+
+当前后端已迁移为 MyBatis 分层结构，目录、数据兼容及 MySQL 验证见 [MyBatis迁移与MySQL验证](docs/MyBatis迁移与MySQL验证.md)。
+
+迁移前的后端源码阅读说明见 [后端项目说明：包与类详解](docs/后端项目说明-包与类详解.md)，按包解释全部正式类、内部类型及测试类，并说明架构、关键方法、调用流程、数据表和启动配置。
+
 # 大学生考研 AI 导学系统
 
 后端以原课程文档的 11 个模块和 `contracts/openapi.json` 为范围，独立构建及本地运行。前端是 Vue 3 + TypeScript + Vite 项目，使用说明见 [frontend/README.md](frontend/README.md)。前后端统一保存在本仓库，分别构建和启动。已配置本机 MySQL；外部模型与 Nginx 尚未配置。
@@ -29,7 +35,7 @@ local 配置使用 `.local-data/kaoyan.mv.db`，不是你的 MySQL 数据库。F
 
 前端启动 Vite 开发服务器后切换“真实接口模式”。开发代理将 `/api/v1` 原路径转发到本后端 8080 端口。前端无需复制到后端，不加入 Maven 构建，也没有新增部署要求。
 
-所有路径、请求方法和字段以 OpenAPI 为准。登录使用 HttpOnly `SESSION` Cookie；登录前获取 CSRF，登录后再获取一次，写请求携带 `X-CSRF-Token`。幂等写请求还须携带 UUID `Idempotency-Key`，有 `requestId` 或 `eventId` 时二者必须一致。公开 ID 为 UUID，业务错误使用正确的 HTTP 状态；204 不返回响应体。
+所有路径、请求方法和字段以 OpenAPI v1.1.0 为准，共86项接口。当前前端使用 `/auth/register`、`/auth/login`、`/auth/me`、`/auth/logout`，JWT 经 HttpOnly `AUTH_TOKEN` Cookie 签发；旧 `SESSION` 登录保留兼容。注册／登录前获取 CSRF，成功后再获取一次，所有写请求仍携带绑定 `SESSION` Cookie 的 `X-CSRF-Token`，Bearer JWT 调用也不例外。幂等写请求还须携带 UUID `Idempotency-Key`，有 `requestId` 或 `eventId` 时二者必须一致。公开 ID 为 UUID，业务错误使用正确的 HTTP 状态；204 不返回响应体。导入、参数、Cookie 和认证操作见 [Apifox 联调说明](apifox/README.md)。
 
 ## 当前业务行为
 
@@ -75,24 +81,25 @@ AI_AUDIO_MODEL=<支持 /audio/transcriptions 的模型>
 
 mysql 配置不会注入 H2 本地种子账号或样例资料，目前新库的 `app_users` 为空，`student` 演示账号不能直接用于 MySQL 登录。账号和课程初始化属于后续业务配置，不自动迁移 H2 数据。
 
-持久化按聚合使用独立表，公共目录快照与用户资源通过 owner 隔离；聚合的子项保存在受契约约束的 JSON 文本中。版本列执行乐观锁，写业务通过事务和用户行锁串行化；幂等响应与业务修改在同一事务保存。不是传统每个 DTO 属性一列的 MyBatis 实体结构；现实现使用 Spring JDBC，清理了未使用的 Redis、OSS 和 MyBatis 依赖。
+持久化按聚合使用独立表，公共目录快照与用户资源通过 owner 隔离；聚合的子项保存在受契约约束的 JSON 文本中。版本列执行乐观锁，写业务通过事务和用户行锁串行化；幂等响应与业务修改在同一事务保存。保留既有聚合 JSON 存储格式，持久化改由 MyBatis Mapper 接口和 XML 执行；无需重建数据库或迁移已有数据。Mapper 实体位于 `entity`，SQL 位于 `src/main/resources/mapper/`。当前未接入 Redis、OSS。
 
 ## 验证
 
 ```powershell
 ./scripts/test-backend.ps1
+./scripts/test-mysql.ps1  # 显式连接既有 MySQL，测试写入回滚
 ./scripts/test-apifox.ps1
 ```
 
 Spring 测试通过 MockMvc 调用实际控制器、服务和独立 H2 数据库。模型成功分支使用仅存在于 test 目录的明确测试替身；生产源码没有 Mock 模型回退。它们不能代替真实模型账号联调或 MySQL 验证。
 
-`apifox/backend-local.apifox-cli.json` 含 146 个串行请求步骤和断言，模拟前端的 Cookie、CSRF、幂等键、ID 与版本传递。先启动后端，再运行脚本；首次会将 Apifox CLI 安装到项目 `.tools/apifox`。`apifox/backend-local.postman_collection.json` 可导入你已安装的 Apifox 客户端。使用当前日期生成的集合；跨日期验证前更新日期参数。
+`apifox/backend-local.apifox-cli.json` 含148个串行请求步骤和断言，按当前前端使用 JWT Cookie 登录／退出，传递 CSRF、幂等键、ID 与版本，日期按 Asia/Shanghai 运行时生成。先启动独立测试后端，再运行脚本；首次会将 Apifox CLI 安装到项目 `.tools/apifox`。`apifox/backend-local.postman_collection.json` 可导入客户端。另提供12步 `auth-jwt` 集合，`./scripts/test-apifox.ps1 -Suite auth` 无需预置账号，但会创建并保留测试账号，应仅用于独立测试库。
 
 Apifox 的 4 次任务轮询依赖脚本设置的请求间隔；资源或模型响应较慢时需要延长间隔/轮询次数。当前集合预期外部模型未配置，配置真实模型后应按成功分支修改预期断言。文件二进制与长连接由专项 Spring 测试覆盖；该集合不会无限等待 SSE。
 
 ## 目录和编码规范
 
-`controller` 声明显式接口；`contract` 做严格校验和事务/幂等入口；`domain` 处理 11 模块业务；`persistence` 负责持久化；`jobs` 负责异步任务、通知和计时；`security` 负责会话与 CSRF；`storage` 负责私有文件；`ai` 负责模型适配；`common` 负责错误及 DTO 构造。
+`api` 管理接口、请求安全、契约和全局异常；`service` 处理 11 模块业务，其中 `auth` 负责账户认证、`task` 负责异步任务和定时处理；`persistence` 集中管理 Repository、MyBatis Mapper 和实体；`infrastructure` 管理模型、文件和初始化配置；`common` 提供公共工具与业务异常。
 
 Java 17、UTF-8，类/方法使用英文命名，关键业务规则用中文注释。控制器不接受 userId 指定当前用户，不返回数据库用户实体或密钥；不得修改既定契约字段来绕过校验；写请求必须检查归属、版本和状态。日志使用 traceId，不打印账号密码、Cookie、CSRF 或模型密钥。Java 源码采用统一格式，业务变更附相应集成测试。
 

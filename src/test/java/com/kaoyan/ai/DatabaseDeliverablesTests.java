@@ -4,7 +4,9 @@ import static com.kaoyan.ai.common.Jsons.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.kaoyan.ai.common.ApiException;
-import com.kaoyan.ai.persistence.*;
+import com.kaoyan.ai.infrastructure.config.LocalDataInitializer;
+import com.kaoyan.ai.persistence.entity.UserAccount;
+import com.kaoyan.ai.persistence.repository.*;
 import java.nio.file.*;
 import java.util.*;
 import org.junit.jupiter.api.*;
@@ -23,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 @ActiveProfiles("local")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class DatabaseDeliverablesTests {
+  @Autowired org.springframework.jdbc.core.JdbcTemplate verificationJdbc;
   @Autowired UserAccountRepository accounts;
   @Autowired IdempotencyRepository idempotency;
   @Autowired EventOutboxRepository outbox;
@@ -34,7 +37,7 @@ class DatabaseDeliverablesTests {
   @Transactional
   void usersUseBoundParametersAndUniqueLogin() {
     var account =
-        new UserAccountRepository.Account(id(), "' OR 1=1 --", "参数绑定验证", "hashed-test-value");
+        new UserAccount(id(), "' OR 1=1 --", "参数绑定验证", "hashed-test-value");
     accounts.create(account);
     assertEquals(account.id(), accounts.findByLoginName(account.loginName()).orElseThrow().id());
     assertTrue(accounts.findByLoginName("not-a-user").isEmpty());
@@ -43,7 +46,7 @@ class DatabaseDeliverablesTests {
         DataIntegrityViolationException.class,
         () ->
             accounts.create(
-                new UserAccountRepository.Account(
+                new UserAccount(
                     id(), account.loginName(), "重复", "another-hash")));
   }
 
@@ -97,8 +100,7 @@ class DatabaseDeliverablesTests {
     var snapshot = obj();
     snapshot.set("app_users", arr());
     for (var user :
-        records
-            .jdbc()
+        verificationJdbc
             .queryForList(
                 "SELECT id,login_name,display_name,password_hash FROM app_users ORDER BY id"))
       snapshot
@@ -116,8 +118,7 @@ class DatabaseDeliverablesTests {
     for (String table : new TreeSet<>(RecordRepository.TABLES)) {
       var rows = arr();
       for (var row :
-          records
-              .jdbc()
+          verificationJdbc
               .queryForList("SELECT id,owner_id,version,payload FROM " + table + " ORDER BY id"))
         rows.add(
             obj(

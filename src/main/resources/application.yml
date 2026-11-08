@@ -42,3 +42,12 @@ ai:
     vision-model: ${AI_VISION_MODEL:}
     audio-model: ${AI_AUDIO_MODEL:}
     timeout-seconds: 45
+
+mybatis:
+  mapper-locations: classpath*:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    # Avoid stale reads when several mapper methods update a record in one transaction.
+    local-cache-scope: STATEMENT
+    cache-enabled: false
+    default-statement-timeout: 30

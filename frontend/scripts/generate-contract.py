@@ -16,7 +16,7 @@ def ts(s):
  if t=='array':return '('+ts(s['items'])+')[]'
  return {'string':'string','integer':'number','number':'number','boolean':'boolean','null':'null'}.get(t,'unknown')
 
-lines=['// 从 contracts/openapi.json 生成；禁止手工修改。','export const CONTRACT_VERSION = "1.0.0";']
+lines=['// 从 contracts/openapi.json 生成；禁止手工修改。','export const CONTRACT_VERSION = '+json.dumps(spec['info']['version'])+';']
 for n,s in schemas.items():lines.append('export type '+n+' = '+ts(s)+';')
 ops={}; defs=[]
 for path,methods in spec['paths'].items():
