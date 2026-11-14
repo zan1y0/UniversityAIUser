@@ -29,7 +29,7 @@ for path,methods in spec['paths'].items():
    resp=schemas[media['schema']['$ref'].split('/')[-1]]
    out=ts(resp['properties']['data'])
   elif path.endswith('/events'):out='EventPayload'
-  elif method=='get' and path.endswith('/files/{id}'):out='Blob'
+  elif any(m.get('schema',{}).get('format')=='binary' for m in response.get('content',{}).values()):out='Blob'
   prop={}
   for where in ['path','query']:
    pars=[p for p in ps if p['in']==where]

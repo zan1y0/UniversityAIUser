@@ -1,0 +1,114 @@
+{
+  "date": "2026-11-08",
+  "backend": {
+    "tests": 54,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "suites": [
+    {
+      "name": "com.kaoyan.ai.AuthIntegrationTests",
+      "tests": "12",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.kaoyan.ai.BackendContractTests",
+      "tests": "17",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.kaoyan.ai.BackendModelFlowTests",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.kaoyan.ai.DatabaseDeliverablesTests",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.kaoyan.ai.KaoyanAiApplicationTests",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.kaoyan.ai.LocalDataInitializerTests",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.kaoyan.ai.MybatisMysqlApplicationTests",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.kaoyan.ai.MybatisMysqlIntegrationTests",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.kaoyan.ai.MysqlPersistenceTests",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "1"
+    },
+    {
+      "name": "com.kaoyan.ai.RbacIntegrationTests",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.kaoyan.ai.RbacMysqlIntegrationTests",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    }
+  ],
+  "mysql": {
+    "database": "kaoyan_ai",
+    "version": "8.0.46",
+    "flywayVersion": 3,
+    "rbacFlowTestsPassed": 5,
+    "testWritesRolledBack": true
+  },
+  "frontend": {
+    "repositoryUnitTestsPassed": 26,
+    "desktopUniversityAIUserPageUnitTestsPassed": 21,
+    "desktopRbacBrowserTestsPassed": 4,
+    "repositoryBrowserRegression": {
+      "cases": 42,
+      "passedOnInitialRun": 36,
+      "passedAfterRoleAssertionAndIsolatedBackendFixes": 5,
+      "mobileLoginLayoutPassedAfterAdjustment": 1
+    },
+    "desktopBuild": "passed",
+    "repositoryBuild": "passed"
+  },
+  "contracts": {
+    "backendVersion": "1.2.0",
+    "backendOperations": 96,
+    "desktopFrontendOperations": 95
+  },
+  "scope": "新增RBAC、Spring Security和教学功能；生产数据库访问使用MyBatis；保留学生原功能及桌面悬浮数字人。"
+}

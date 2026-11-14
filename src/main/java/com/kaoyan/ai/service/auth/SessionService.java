@@ -13,11 +13,12 @@ import org.springframework.stereotype.Service;
 public class SessionService {
   private final UserAccountRepository accounts;
   private final JwtService jwt;
+  private final PermissionService permissions;
   private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
 
-  public SessionService(UserAccountRepository accounts, JwtService jwt) {
+  public SessionService(UserAccountRepository accounts, JwtService jwt, PermissionService permissions) {
     this.accounts = accounts;
-    this.jwt = jwt;
+    this.jwt = jwt; this.permissions=permissions;
   }
 
   public String csrf(HttpServletRequest r) {
@@ -31,12 +32,20 @@ public class SessionService {
   }
 
   public String user(HttpServletRequest r) {
+    var identity = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+    if (identity != null && identity.getPrincipal() instanceof com.kaoyan.ai.api.security.RequestIdentity principal) return principal.userId();
     var token = jwt.token(r);
     if (token.isPresent()) return jwt.verify(token.get()).getSubject();
     HttpSession s = r.getSession(false);
     if (s == null || s.getAttribute("userId") == null)
       throw new ApiException(401, "UNAUTHENTICATED", "请先登录");
     return (String) s.getAttribute("userId");
+  }
+
+  public String role(HttpServletRequest r) {
+    var identity = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+    if (identity != null && identity.getPrincipal() instanceof com.kaoyan.ai.api.security.RequestIdentity principal) return principal.role();
+    throw new ApiException(401,"UNAUTHENTICATED","请重新登录");
   }
 
   public ObjectNode login(HttpServletRequest r, String name, String password) {
@@ -57,11 +66,13 @@ public class SessionService {
       session.setAttribute("loginFailures", attempts + 1);
       throw new ApiException(401, "INVALID_CREDENTIALS", "账号或密码错误");
     }
+    permissions.requireRole(account.get().id(),"STUDENT");
     r.changeSessionId();
     session.removeAttribute("csrf");
     session.setAttribute("loginFailures", 0);
     String uid = account.get().id();
     session.setAttribute("userId", uid);
+    session.setAttribute("activeRole", "STUDENT");
     return obj(
         "id",
         uid,

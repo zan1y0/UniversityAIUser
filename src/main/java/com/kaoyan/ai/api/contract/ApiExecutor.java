@@ -78,8 +78,6 @@ public class ApiExecutor {
                         : r.getSession().getAttribute("loginFailures"));
             yield obj("token", sessions.csrf(r), "headerName", "X-CSRF-Token");
           }
-          case "op002" ->
-              sessions.login(r, body.path("loginName").asText(), body.path("password").asText());
           case "op003" -> {
             sessions.logout(r);
             yield null;

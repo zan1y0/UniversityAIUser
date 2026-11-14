@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kaoyan.ai.persistence.mapper.TeachingMapper">
+
+  <resultMap id="task" type="com.kaoyan.ai.persistence.entity.TeachingTask">
+    <constructor>
+      <idArg column="id" javaType="string"/><arg column="teacher_id" javaType="string"/>
+      <arg column="student_id" javaType="string"/><arg column="title" javaType="string"/>
+      <arg column="description" javaType="string"/><arg column="deadline" javaType="string"/>
+      <arg column="status" javaType="string"/><arg column="version" javaType="_int"/>
+      <arg column="created_at" javaType="string"/><arg column="completed_at" javaType="string"/>
+      <arg column="class_id" javaType="string"/><arg column="requires_submission" javaType="_boolean"/>
+      <arg column="publication_id" javaType="string"/>
+    </constructor>
+  </resultMap>
+  <resultMap id="attachment" type="com.kaoyan.ai.persistence.entity.TeachingAttachment">
+    <constructor>
+      <arg column="file_name" javaType="string"/><arg column="size_bytes" javaType="_int"/>
+    </constructor>
+  </resultMap>
+  <resultMap id="attachmentContent" type="com.kaoyan.ai.persistence.entity.TeachingAttachmentContent">
+    <constructor>
+      <arg column="file_content" javaType="[B" jdbcType="BLOB"/>
+    </constructor>
+  </resultMap>
+  <resultMap id="teachingClass" type="com.kaoyan.ai.persistence.entity.TeachingClass">
+    <constructor>
+      <idArg column="id" javaType="string"/><arg column="teacher_id" javaType="string"/>
+      <arg column="class_code" javaType="string"/><arg column="class_name" javaType="string"/>
+      <arg column="teacher_name" javaType="string"/><arg column="member_count" javaType="_long"/>
+    </constructor>
+  </resultMap>
+  <resultMap id="submission" type="com.kaoyan.ai.persistence.entity.TeachingSubmission">
+    <constructor>
+      <idArg column="task_id" javaType="string"/><arg column="content" javaType="string"/>
+      <arg column="submitted_at" javaType="string"/><arg column="score" javaType="java.lang.Integer"/>
+      <arg column="feedback" javaType="string"/><arg column="graded_at" javaType="string"/>
+    </constructor>
+  </resultMap>
+  <select id="teachers" resultMap="com.kaoyan.ai.persistence.mapper.UserAccountMapper.account">
+    SELECT u.* FROM app_users u JOIN sys_user_roles r ON u.id=r.user_id WHERE r.role_code='TEACHER' ORDER BY u.display_name,u.id LIMIT 200
+  </select>
+  <select id="students" resultMap="com.kaoyan.ai.persistence.mapper.UserAccountMapper.account">
+    SELECT u.* FROM app_users u
+    JOIN sys_user_roles r ON u.id=r.user_id AND r.role_code='STUDENT'
+    WHERE EXISTS (
+      SELECT 1 FROM teacher_students ts WHERE ts.teacher_id=#{teacher} AND ts.student_id=u.id AND ts.status='active'
+    ) OR EXISTS (
+      SELECT 1 FROM teaching_class_members m JOIN teaching_classes c ON c.id=m.class_id
+      WHERE c.teacher_id=#{teacher} AND m.student_id=u.id
+    )
+    ORDER BY u.display_name,u.id
+  </select>
+  <select id="connectedTeachers" resultType="string">SELECT teacher_id FROM teacher_students WHERE student_id=#{student} AND status='active'</select>
+  <select id="related" resultType="int">
+    SELECT COUNT(*) FROM teacher_students ts
+    JOIN sys_user_roles tr ON tr.user_id=ts.teacher_id AND tr.role_code='TEACHER'
+    JOIN sys_user_roles sr ON sr.user_id=ts.student_id AND sr.role_code='STUDENT'
+    WHERE ts.teacher_id=#{teacher} AND ts.student_id=#{student} AND (
+      ts.status='active' OR EXISTS (
+        SELECT 1 FROM teaching_class_members m JOIN teaching_classes c ON c.id=m.class_id
+        WHERE c.teacher_id=ts.teacher_id AND m.student_id=ts.student_id
+      )
+    )
+  </select>
+  <update id="activate">UPDATE teacher_students SET status='active' WHERE teacher_id=#{teacher} AND student_id=#{student}</update>
+  <insert id="connect">INSERT INTO teacher_students(teacher_id,student_id,status) VALUES (#{teacher},#{student},'active')</insert>
+  <update id="disconnect">UPDATE teacher_students SET status='inactive' WHERE teacher_id=#{teacher} AND student_id=#{student}</update>
+  <select id="hasRelationRow" resultType="boolean">
+    SELECT COUNT(*) &gt; 0 FROM teacher_students WHERE teacher_id=#{teacher} AND student_id=#{student}
+  </select>
+  <insert id="insertRelationAnchor">
+    INSERT INTO teacher_students(teacher_id,student_id,status) VALUES (#{teacher},#{student},'inactive')
+  </insert>
+  <insert id="insertClass">
+    INSERT INTO teaching_classes(id,teacher_id,class_code,class_name) VALUES (#{id},#{teacherId},#{code},#{name})
+  </insert>
+  <select id="lockClassByCode" resultMap="teachingClass">
+    SELECT c.*, NULL AS teacher_name, 0 AS member_count FROM teaching_classes c WHERE c.class_code=#{code} FOR UPDATE
+  </select>
+  <select id="lockClassById" resultMap="teachingClass">
+    SELECT c.*, NULL AS teacher_name, 0 AS member_count FROM teaching_classes c WHERE c.id=#{id} FOR UPDATE
+  </select>
+  <sql id="classDetails">
+    SELECT c.*, u.display_name AS teacher_name,
+      (SELECT COUNT(*) FROM teaching_class_members roster WHERE roster.class_id=c.id) AS member_count
+    FROM teaching_classes c JOIN app_users u ON u.id=c.teacher_id
+  </sql>
+  <select id="teacherClasses" resultMap="teachingClass">
+    <include refid="classDetails"/> WHERE c.teacher_id=#{user} ORDER BY c.class_name,c.id
+  </select>
+  <select id="studentClasses" resultMap="teachingClass">
+    <include refid="classDetails"/>
+    JOIN teaching_class_members m ON m.class_id=c.id AND m.student_id=#{user}
+    ORDER BY c.class_name,c.id
+  </select>
+  <select id="classStudents" resultMap="com.kaoyan.ai.persistence.mapper.UserAccountMapper.account">
+    SELECT u.* FROM teaching_class_members m JOIN app_users u ON u.id=m.student_id
+    JOIN sys_user_roles r ON r.user_id=m.student_id AND r.role_code='STUDENT'
+    WHERE m.class_id=#{id} ORDER BY u.display_name,u.id
+  </select>
+  <select id="ownsClass" resultType="boolean">
+    SELECT COUNT(*) &gt; 0 FROM teaching_classes WHERE id=#{id} AND teacher_id=#{teacher}
+  </select>
+  <select id="classMember" resultType="boolean">
+    SELECT COUNT(*) &gt; 0 FROM teaching_class_members WHERE class_id=#{id} AND student_id=#{student}
+  </select>
+  <insert id="joinClass">INSERT INTO teaching_class_members(class_id,student_id) VALUES (#{id},#{student})</insert>
+  <delete id="leaveClass">DELETE FROM teaching_class_members WHERE class_id=#{id} AND student_id=#{student}</delete>
+  <insert id="insertPublication">
+    INSERT INTO teaching_publications(id,teacher_id,created_at) VALUES (#{id},#{teacher},#{createdAt})
+  </insert>
+  <insert id="insertTask">
+    INSERT INTO teaching_tasks(id,teacher_id,student_id,title,description,deadline,status,version,created_at,completed_at,class_id,requires_submission,publication_id)
+    VALUES (#{id},#{teacherId},#{studentId},#{title},#{description},#{deadline},#{status},#{version},#{createdAt},#{completedAt},#{classId},#{requiresSubmission},#{publicationId})
+  </insert>
+  <select id="task" resultMap="task">SELECT * FROM teaching_tasks WHERE id=#{id}</select>
+  <sql id="activeRelation">
+    (
+      (t.class_id IS NULL AND EXISTS (
+        SELECT 1 FROM teacher_students ts WHERE ts.teacher_id=t.teacher_id AND ts.student_id=t.student_id AND ts.status='active'
+      ))
+      OR EXISTS (
+        SELECT 1 FROM teaching_class_members m JOIN teaching_classes c ON c.id=m.class_id
+        WHERE c.teacher_id=t.teacher_id AND m.student_id=t.student_id AND (t.class_id IS NULL OR m.class_id=t.class_id)
+      )
+    )
+  </sql>
+  <select id="teacherTasks" resultMap="task">SELECT t.* FROM teaching_tasks t WHERE t.teacher_id=#{user} AND <include refid="activeRelation"/> ORDER BY t.created_at DESC,t.id</select>
+  <select id="studentTasks" resultMap="task">SELECT t.* FROM teaching_tasks t WHERE t.student_id=#{user} AND <include refid="activeRelation"/> ORDER BY t.created_at DESC,t.id</select>
+  <select id="submission" resultMap="submission">SELECT * FROM teaching_submissions WHERE task_id=#{id}</select>
+  <insert id="insertSubmission">
+    INSERT INTO teaching_submissions(task_id,content,submitted_at) VALUES (#{taskId},#{content},#{submittedAt})
+  </insert>
+  <select id="attachment" resultMap="attachment">
+    SELECT file_name,size_bytes FROM teaching_submission_attachments WHERE task_id=#{id}
+  </select>
+  <select id="attachmentContent" resultMap="attachmentContent">
+    SELECT file_content FROM teaching_submission_attachments WHERE task_id=#{id}
+  </select>
+  <insert id="insertAttachment">
+    INSERT INTO teaching_submission_attachments(task_id,file_name,size_bytes,file_content)
+    VALUES (#{id},#{fileName},#{size},#{content,jdbcType=BLOB})
+  </insert>
+  <update id="gradeSubmission">
+    UPDATE teaching_submissions SET score=#{score},feedback=#{feedback},graded_at=#{gradedAt}
+    WHERE task_id=#{taskId} AND graded_at IS NULL
+  </update>
+  <update id="transition">
+    UPDATE teaching_tasks SET status=#{status},version=version+1,completed_at=#{completedAt}
+    WHERE id=#{id} AND teacher_id=#{teacher} AND student_id=#{student} AND status=#{from} AND version=#{version}
+  </update>
+
+</mapper>

@@ -6,7 +6,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.kaoyan.ai.service.task.*;
-import com.kaoyan.ai.persistence.repository.UserAccountRepository;
+import com.kaoyan.ai.persistence.mapper.IdentityMapper;
+import com.kaoyan.ai.service.auth.AccountMail;
+import com.kaoyan.ai.service.auth.EmailVerificationService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +34,9 @@ class MybatisMysqlApplicationTests {
   @MockBean ReminderService reminders;
   @MockBean PolicyImportService policies;
   @Autowired MockMvc mvc;
-  @Autowired UserAccountRepository accounts;
+  @MockBean AccountMail mail;
+  @Autowired IdentityMapper accounts;
+  @Autowired EmailVerificationService codes;
 
   @Test
   @Transactional
@@ -43,13 +47,20 @@ class MybatisMysqlApplicationTests {
     var session = (MockHttpSession) csrfResponse.getRequest().getSession();
     String csrf = parse(csrfResponse.getResponse().getContentAsString())
         .path("data").path("token").asText();
-    String login = "mb_" + id().replace("-", "").substring(0, 20);
+    String email = "mb_" + id().replace("-", "").substring(0, 20) + "@example.test";
+    codes.send(EmailVerificationService.Purpose.REGISTER, email, "");
+    var content = org.mockito.ArgumentCaptor.forClass(String.class);
+    org.mockito.Mockito.verify(mail).send(org.mockito.ArgumentMatchers.eq(email),
+        org.mockito.ArgumentMatchers.anyString(),content.capture());
+    String code = java.util.regex.Pattern.compile("[0-9]{6}").matcher(content.getValue()).results()
+        .findFirst().orElseThrow().group();
     var registered = mvc.perform(post("/api/v1/auth/register").session(session)
         .header("X-CSRF-Token", csrf).contentType(MediaType.APPLICATION_JSON)
-        .content(obj("loginName", login, "password", "MybatisVerify2026!",
+        .content(obj("email", email, "code", code, "acceptedTerms", true,
+            "password", "MybatisVerify2026!", "confirmPassword", "MybatisVerify2026!",
             "displayName", "MySQL链路验证").toString()))
         .andExpect(status().isCreated()).andReturn();
-    var account = accounts.findByLoginName(login).orElseThrow();
+    var account = accounts.byEmail(email);
     assertTrue(account.passwordHash().startsWith("$2"));
     var cookie = registered.getResponse().getCookie("AUTH_TOKEN");
     assertNotNull(cookie);

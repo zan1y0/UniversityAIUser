@@ -61,5 +61,17 @@ test('真实数字人聊天发送、连续上下文、长度边界与新对话',
   await expect(chat.getByText('真实接口测试回复3', { exact: true })).toBeVisible();
   expect(messages[2]!.contextId).not.toBe(messages[0]!.contextId);
   expect(messages[2]!.text).not.toContain('今天有点累');
+
+  await page.goto('/practice');
+  const robot = page.getByRole('button', { name: '研小途，切换对话' });
+  const panel = page.getByRole('region', { name: '研小途对话' });
+  await expect(robot).toBeInViewport();
+  await robot.click();
+  await panel.getByRole('textbox').fill('刷题前先做什么？');
+  await panel.getByRole('button', { name: '发送', exact: true }).click();
+  await expect(panel.getByText('真实接口测试回复4', { exact: true })).toBeVisible();
+  expect(messages[3]!.text).toBe('刷题前先做什么？');
+  await panel.getByRole('button', { name: '收起对话' }).click();
+  await expect(panel).toBeHidden();
   expect(errors).toEqual([]);
 });

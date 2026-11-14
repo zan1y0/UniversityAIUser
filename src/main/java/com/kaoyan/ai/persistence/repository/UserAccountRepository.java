@@ -9,9 +9,11 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class UserAccountRepository {
   private final UserAccountMapper mapper;
+  private final com.kaoyan.ai.persistence.mapper.RbacMapper roles;
 
-  public UserAccountRepository(UserAccountMapper mapper) {
+  public UserAccountRepository(UserAccountMapper mapper, com.kaoyan.ai.persistence.mapper.RbacMapper roles) {
     this.mapper = mapper;
+    this.roles = roles;
   }
 
   public Optional<UserAccount> findByLoginName(String loginName) {
@@ -26,7 +28,25 @@ public class UserAccountRepository {
     return Optional.ofNullable(mapper.findById(id));
   }
 
+  public Optional<UserAccount> findTeacherByLoginName(String loginName) {
+    return Optional.ofNullable(mapper.findTeacherByLoginName(loginName));
+  }
+
+  public Optional<UserAccount> findTeacherById(String id) {
+    return Optional.ofNullable(mapper.findTeacherById(id));
+  }
+
+  @org.springframework.transaction.annotation.Transactional
+  public void createTeacher(UserAccount account) {
+    // The common row is the identity referenced by sessions, profiles and business records.
+    mapper.insert(new UserAccount(account.id(), "teacher:" + account.id(), account.displayName(), "!TEACHER_LOGIN_ONLY"));
+    mapper.insertTeacherCredentials(account);
+    roles.grant(account.id(), "TEACHER");
+  }
+
+  @org.springframework.transaction.annotation.Transactional
   public void create(UserAccount account) {
     mapper.insert(account);
+    roles.grant(account.id(), "STUDENT");
   }
 }

@@ -104,6 +104,8 @@ public class NewsService {
                               || new java.math.BigInteger(x.path("eventId").asText())
                                       .compareTo(new java.math.BigInteger(c.q("afterEventId")))
                                   > 0)
+                  .sorted(java.util.Comparator.comparing(
+                      (JsonNode n) -> new java.math.BigInteger(n.path("eventId").asText())).reversed())
                   .toList(),
               q);
       case "op081" -> {

@@ -36,8 +36,26 @@ public class AvatarService {
                 "version",
                 1)
             : obj("enabled", true, "time", "20:00", "mode", "gentle", "version", 1);
-    db.create(table, user, user, n);
     return n;
+  }
+
+  public String studyMode(String user) {
+    return defaultSettings("avatar_preferences", user).path("mode").asText("gentle");
+  }
+
+  // Callers that change settings already hold the owner lock.
+  public void saveStudyMode(String user, String mode) {
+    ObjectNode value = defaultSettings("avatar_preferences", user);
+    if (value.path("mode").asText().equals(mode) &&
+        db.find("avatar_preferences", user, user).isPresent()) return;
+    value.put("mode", mode);
+    saveSettings("avatar_preferences", user, value, value.path("version").asInt());
+  }
+
+  private void saveSettings(String table, String user, ObjectNode value, int version) {
+    value.put("version", version + 1);
+    if (db.find(table, user, user).isPresent()) db.update(table, user, user, value, version);
+    else db.create(table, user, user, value);
   }
 
   public JsonNode execute(String op, DomainContext c) {
@@ -61,9 +79,8 @@ public class AvatarService {
                           "voices",
                           arr("zh-CN")))
                   : arr());
-      case "op012", "op017" ->
-          defaultSettings(
-              op.equals("op012") ? "avatar_preferences" : "reminder_preferences", c.user());
+      case "op012" -> defaultSettings("avatar_preferences", c.user());
+      case "op017" -> defaultSettings("reminder_preferences", c.user()).put("mode", studyMode(c.user()));
       case "op013", "op018" -> {
         String table = op.equals("op013") ? "avatar_preferences" : "reminder_preferences";
         ObjectNode p = defaultSettings(table, c.user());
@@ -72,8 +89,8 @@ public class AvatarService {
         if (op.equals("op013"))
           require(c.b("shapeId").equals(SHAPE) && c.b("voice").equals("zh-CN"), "形象或语音选项不存在");
         ObjectNode n = (ObjectNode) c.body().deepCopy();
-        n.put("version", v + 1);
-        db.update(table, c.user(), c.user(), n, v);
+        saveSettings(table, c.user(), n, v);
+        if (op.equals("op018")) saveStudyMode(c.user(), c.b("mode"));
         yield n;
       }
       case "op015" -> {
@@ -117,7 +134,7 @@ public class AvatarService {
             "message",
             planned == 0 ? "先确认学习计划，再逐步推进。" : "今天已完成 " + completed + " / " + planned + " 项任务。",
             "mode",
-            defaultSettings("avatar_preferences", c.user()).get("mode"));
+            studyMode(c.user()));
       }
       default -> throw new IllegalArgumentException(op);
     };

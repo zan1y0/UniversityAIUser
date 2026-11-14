@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kaoyan.ai.persistence.mapper.EmailChallengeMapper">
+  <resultMap id="challenge" type="com.kaoyan.ai.persistence.mapper.EmailChallengeMapper$Challenge">
+    <constructor>
+      <arg column="digest" javaType="string"/>
+      <arg column="expires_at" javaType="java.sql.Timestamp"/>
+      <arg column="failures" javaType="_int"/>
+    </constructor>
+  </resultMap>
+  <sql id="challengeKey">purpose=#{purpose} AND email=#{email} AND scope_key=#{scope}</sql>
+  <select id="find" resultMap="challenge">SELECT digest,expires_at,failures FROM email_challenges WHERE <include refid="challengeKey"/> FOR UPDATE</select>
+  <delete id="remove">DELETE FROM email_challenges WHERE <include refid="challengeKey"/></delete>
+  <insert id="add">INSERT INTO email_challenges(purpose,email,scope_key,digest,expires_at) VALUES(#{purpose},#{email},#{scope},#{digest},#{expires})</insert>
+  <update id="fail">UPDATE email_challenges SET failures=failures+1 WHERE <include refid="challengeKey"/></update>
+  <sql id="bucket">subject_key=#{key} AND period_seconds=#{period} AND window_start=#{start}</sql>
+  <select id="count" resultType="int">SELECT send_count FROM email_send_quota WHERE <include refid="bucket"/></select>
+  <insert id="createBucket">INSERT INTO email_send_quota VALUES(#{key},#{period},#{start},0)</insert>
+  <update id="increment">UPDATE email_send_quota SET send_count=send_count+1 WHERE <include refid="bucket"/></update>
+  <update id="setCount">UPDATE email_send_quota SET send_count=#{value} WHERE <include refid="bucket"/></update>
+  <delete id="cleanQuota">DELETE FROM email_send_quota WHERE (period_seconds &gt; 1 AND window_start &lt; #{cutoff}) OR (period_seconds=1 AND send_count &lt; #{cutoff}-1700000000)</delete>
+  <delete id="cleanChallenges">DELETE FROM email_challenges WHERE expires_at &lt; #{cutoff}</delete>
+</mapper>

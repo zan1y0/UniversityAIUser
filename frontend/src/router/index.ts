@@ -1,6 +1,8 @@
+import { ApiError } from '../api/client';
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAppStore } from '../stores/app';
 import { backend } from '../api/backend';
+import { roleHome, allowedRolePath } from '../domain/auth';
 export const modules = [
   {
     path: '/dashboard',
@@ -101,6 +103,8 @@ export const modules = [
     group: '资讯',
     subtitle: '及时核对关键事项，让备考有条不紊。',
   },
+  { path: '/teacher', title: '教学工作台', short: '教学工作台', module: 'T01', icon: 'book', group: '教学', subtitle: '查看授权学习概况，陪伴学生完成每一步。' },
+  { path: '/teaching', title: '老师与任务', short: '老师与任务', module: 'T02', icon: 'calendar', group: '教学', subtitle: '选择指导老师，查看并完成教学任务。' },
 ];
 const router = createRouter({
   history: createWebHistory(),
@@ -108,6 +112,12 @@ const router = createRouter({
   routes: [
     { path: '/', redirect: '/login' },
     { path: '/login', component: () => import('../views/LoginView.vue'), meta: { title: '登录' } },
+    { path: '/activate', component: () => import('../views/ActivationView.vue'), meta: { public: true, title: '激活账号' } },
+    { path: '/account', component: () => import('../views/AccountView.vue'), meta: { title: '账号设置' } },
+    { path: '/admin', component: () => import('../views/AdminView.vue'), meta: { title: '平台管理' } },
+    { path: '/forbidden', component: () => import('../views/ForbiddenView.vue'), meta: { title: '无访问权限' } },
+    { path: '/teacher', component: () => import('../views/TeachingView.vue') },
+    { path: '/teaching', component: () => import('../views/TeachingView.vue') },
     { path: '/dashboard', component: () => import('../views/DashboardView.vue') },
     { path: '/companion', component: () => import('../views/CompanionView.vue') },
     { path: '/schools', component: () => import('../views/SchoolsView.vue') },
@@ -127,6 +137,7 @@ const router = createRouter({
 });
 router.beforeEach(async (to) => {
   const app = useAppStore();
+  if (to.meta.public) return;
   if (app.mode === 'live' && !app.user && !app.sessionChecked && to.path !== '/login') {
     app.sessionChecked = true;
     try {
@@ -137,6 +148,8 @@ router.beforeEach(async (to) => {
   }
   if (app.mode === 'live' && !app.user && to.path !== '/login')
     return { path: '/login', query: { redirect: to.fullPath } };
+  if (app.mode === 'live' && app.user && !allowedRolePath(app.user, to.path)) return to.path === '/admin' ? '/forbidden' : roleHome(app.user);
+  if (app.mode === 'demo' && ['/teacher', '/teaching', '/admin', '/account'].includes(to.path)) return '/login';
 });
 router.afterEach((to) => {
   document.title = `${modules.find((m) => m.path === to.path)?.title || to.meta.title || '页面'} · 研途 AI`;
@@ -154,3 +167,20 @@ window.addEventListener('auth-expired', () => {
     });
 });
 export default router;
+
+let refreshingPermissions = false;
+window.addEventListener('permissions-changed', async () => {
+  const app = useAppStore();
+  if (!app.user || refreshingPermissions) return;
+  refreshingPermissions = true;
+  try {
+    app.user = await backend.currentUser();
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+      app.setMode('live');
+      await router.replace('/login');
+    }
+  } finally {
+    refreshingPermissions = false;
+  }
+});

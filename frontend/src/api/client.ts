@@ -59,6 +59,23 @@ export interface RequestOptions {
   binary?: boolean;
 }
 export async function request(path: string, options: RequestOptions = {}): Promise<unknown> {
+  try {
+    return await attempt(path, options);
+  } catch (error) {
+    // 后端重启或会话过期后，内存里缓存的令牌会失效；CSRF 在进入业务逻辑前就被拒绝，
+    // 因此重取一次令牌再重放不会重复执行业务操作。FormData 已被读取，不重放。
+    const retry =
+      error instanceof ApiError &&
+      error.status === 403 &&
+      error.code === 'CSRF_REJECTED' &&
+      !(options.body instanceof FormData) &&
+      !options.signal?.aborted;
+    if (!retry) throw error;
+    clearCsrf();
+    return await attempt(path, options);
+  }
+}
+async function attempt(path: string, options: RequestOptions = {}): Promise<unknown> {
   if (!path.startsWith('/') || path.startsWith('//'))
     throw new ApiError('无效请求地址', 'INVALID_REQUEST');
   const controller = new AbortController();
@@ -100,6 +117,8 @@ export async function request(path: string, options: RequestOptions = {}): Promi
     }
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) clearCsrf();
+      if (response.status === 403 && isRecord(raw) && ['FORBIDDEN', 'ROLE_NOT_ASSIGNED'].includes(String(raw.code)))
+        window.dispatchEvent(new Event('permissions-changed'));
       if (response.status === 401 && isRecord(raw) && raw.code === 'UNAUTHENTICATED')
         globalThis.dispatchEvent?.(new Event('auth-expired'));
       throw new ApiError(

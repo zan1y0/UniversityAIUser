@@ -16,6 +16,17 @@
   <select id="findById" resultMap="account">
     SELECT id,login_name,display_name,password_hash FROM app_users WHERE id=#{id}
   </select>
+  <select id="findTeacherByLoginName" resultMap="account">
+    SELECT u.id,t.login_name,u.display_name,t.password_hash
+    FROM teacher_accounts t JOIN app_users u ON u.id=t.user_id WHERE t.login_name=#{loginName}
+  </select>
+  <select id="findTeacherById" resultMap="account">
+    SELECT u.id,t.login_name,u.display_name,t.password_hash
+    FROM teacher_accounts t JOIN app_users u ON u.id=t.user_id WHERE t.user_id=#{id}
+  </select>
+  <insert id="insertTeacherCredentials">
+    INSERT INTO teacher_accounts(user_id,login_name,password_hash) VALUES (#{id},#{loginName},#{passwordHash})
+  </insert>
   <select id="countById" resultType="int">SELECT COUNT(*) FROM app_users WHERE id=#{id}</select>
   <insert id="insert">
     INSERT INTO app_users(id,login_name,display_name,password_hash)

@@ -1,5 +1,7 @@
 本仓库包含同一个软件项目的后端 UniversityAIUser 与前端 UniversityAIUserPage：后端位于根目录，最新前端源码收录在 `frontend/`。登录／注册与 JWT 认证说明见 [登录注册与JWT](docs/登录注册与JWT.md)。
 
+学生、老师、管理员统一使用邮箱登录。发码、老师邀请、首位管理员初始化、数据库权限、迁移与验证见 [统一邮箱认证与三角色 RBAC 交付](docs/统一邮箱认证与三角色RBAC-交付.md)。桌面版 `UniversityAIUserPage` 与仓库版 `frontend/` 均已适配。
+
 当前包目录已按功能归组，阅读顺序见 [包目录与调用顺序](docs/包目录与调用顺序.md)。
 
 当前后端已迁移为 MyBatis 分层结构，目录、数据兼容及 MySQL 验证见 [MyBatis迁移与MySQL验证](docs/MyBatis迁移与MySQL验证.md)。
@@ -10,7 +12,7 @@
 
 后端以原课程文档的 11 个模块和 `contracts/openapi.json` 为范围，独立构建及本地运行。前端是 Vue 3 + TypeScript + Vite 项目，使用说明见 [frontend/README.md](frontend/README.md)。前后端统一保存在本仓库，分别构建和启动。已配置本机 MySQL；外部模型与 Nginx 尚未配置。
 
-克隆仓库后，在根目录按下文配置并启动后端；另开终端进入 `frontend/`，执行 `npm ci`、`npm run dev` 启动前端。本机数据库、密码和模型密钥需要自行配置，参考 `.env.example`；依赖目录、构建产物和本机私有配置不提交到 Git。
+克隆仓库后，在根目录按下文配置并启动后端；另开终端进入 `frontend/`，执行 `npm ci`、`npm run dev` 启动前端。本机数据库、密码和模型密钥需要自行配置，参考 `.env.example`；依赖目录、构建产物和本机私有配置不提交到 Git。数字人三种模式的演示、迁移和验证见[数字人陪伴督学](docs/数字人陪伴督学.md)。
 
 ## IDEA 启动
 
@@ -27,7 +29,7 @@
 
 local 配置使用 `.local-data/kaoyan.mv.db`，不是你的 MySQL 数据库。Flyway 自动建表，第一次启动生成明确标记为联调样例的院校、知识点、题目和练习卷。重新启动保留个人业务数据；会话需要重新登录。
 
-本地账号 `student`、`student2` 不再提供固定默认密码。首次启动前必须在 IDEA 运行配置或终端环境中设置 `LOCAL_STUDENT_PASSWORD`，未设置或仅含空白时初始化会失败并提示配置。密码以 BCrypt 哈希存入数据库；更改该变量不会改写已有账号。Apifox 脚本读取同一变量，也可用 `-Password` 传入已有账号密码；直接导入集合时需自行填写 password 环境变量。
+新建本地联调库的演示账号使用 `student@example.test` 和 `student2@example.test`；首次启动前在 IDEA 或终端设置 `LOCAL_STUDENT_PASSWORD`。密码以 BCrypt 哈希存储；更改该变量不会改写已有账号。已有用户按历史账号认领流程绑定真实邮箱。
 
 本地 H2 密码通过 `LOCAL_DB_PASSWORD` 配置；未设置时为空，仅用于兼容现有本地 H2 文件库，已有文件必须继续使用原密码。新建文件库可在首次启动前设置非空值。MySQL 后端继续读取 `MYSQL_PASSWORD`；Docker Compose 创建 MySQL 容器时必须另外设置 `MYSQL_ROOT_PASSWORD`，缺失或为空会直接报错。`.env.example` 只是说明，需将变量配置到启动进程；Docker Compose 可读取项目根目录下未提交的 `.env`。这些配置均不会自动修改数据库服务器或现有用户密码。
 
@@ -35,7 +37,7 @@ local 配置使用 `.local-data/kaoyan.mv.db`，不是你的 MySQL 数据库。F
 
 前端启动 Vite 开发服务器后切换“真实接口模式”。开发代理将 `/api/v1` 原路径转发到本后端 8080 端口。前端无需复制到后端，不加入 Maven 构建，也没有新增部署要求。
 
-所有路径、请求方法和字段以 OpenAPI v1.1.0 为准，共86项接口。当前前端使用 `/auth/register`、`/auth/login`、`/auth/me`、`/auth/logout`，JWT 经 HttpOnly `AUTH_TOKEN` Cookie 签发；旧 `SESSION` 登录保留兼容。注册／登录前获取 CSRF，成功后再获取一次，所有写请求仍携带绑定 `SESSION` Cookie 的 `X-CSRF-Token`，Bearer JWT 调用也不例外。幂等写请求还须携带 UUID `Idempotency-Key`，有 `requestId` 或 `eventId` 时二者必须一致。公开 ID 为 UUID，业务错误使用正确的 HTTP 状态；204 不返回响应体。导入、参数、Cookie 和认证操作见 [Apifox 联调说明](apifox/README.md)。
+所有路径、请求方法和字段以 [OpenAPI 契约](contracts/openapi.json) 为准。邮箱认证使用 `/auth` 接口，JWT 经 HttpOnly `AUTH_TOKEN` Cookie 签发；`/session/login` 兼容同一邮箱凭据。注册、登录前获取 CSRF，成功后再获取一次，所有写请求均须携带绑定到会话的 `X-CSRF-Token`。幂等写请求还须携带 UUID `Idempotency-Key`；有 `requestId` 或 `eventId` 时二者必须一致。
 
 ## 当前业务行为
 

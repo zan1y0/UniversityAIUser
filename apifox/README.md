@@ -1,6 +1,6 @@
 # Apifox 前后端分离联调
 
-2026-11-05 按仓库当前控制器、认证实现和 `frontend/` 调用更新，契约版本 **1.1.0**，共 **86 个接口**，覆盖原 11 个业务模块。
+当前后端统一使用邮箱登录。请重新导入仓库的 OpenAPI **1.5.0**；本目录的历史自动化集合仍按升级前协议编写。
 
 ## 导入接口定义
 
@@ -11,7 +11,7 @@
 ## 当前认证流程
 
 1. GET `/api/v1/session/csrf`：让 Apifox 自动保存 `SESSION` Cookie，把响应 `data.token` 保存为环境变量 `csrf`。后置操作可选择提取变量，或使用 `pm.environment.set('csrf', pm.response.json().data.token)`。
-2. POST `/api/v1/auth/login`：Body → JSON 填 `loginName,password`，Headers 添加 `X-CSRF-Token: {{csrf}}`。没有账号时使用 `/auth/register`，额外填写 `displayName`。
+2. POST `/api/v1/auth/login`：JSON 填 `email,password`，Headers 添加 `X-CSRF-Token: {{csrf}}`。注册时先请求 `POST /api/v1/auth/email/code`（`purpose=REGISTER`），再通过 `/auth/register` 提交邮箱、验证码、昵称、密码、确认密码和协议勾选。
 3. 登录／注册成功，后端通过 `Set-Cookie` 签发 HttpOnly `AUTH_TOKEN` JWT；Apifox 自动管理 Cookie，响应 JSON **没有 token 字段**。保持 Cookie 自动发送；当前环境不要继承一个未填写或过期的 Bearer Authorization，否则它优先于 Cookie，会造成 401。
 4. 再次 GET `/api/v1/session/csrf` 并更新 `csrf`，因为认证成功后 CSRF 会轮换。
 5. GET `/api/v1/auth/me` 确认登录，然后调用业务接口。POST/PUT/PATCH/DELETE 继续携带 `X-CSRF-Token`；有幂等标记的请求还须填写 UUID `Idempotency-Key`。

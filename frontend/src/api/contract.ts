@@ -49,7 +49,7 @@ export async function execute(
     body: input.body,
     signal: options.signal,
     idempotencyKey: options.key,
-    binary: id === 'op007',
+    binary: id === 'op007' || id === 'op112' || id === 'op113',
     timeoutMs: op.multipart ? 60000 : 15000,
     responseSchema: op.response ? (raw) => assertSchema(op.response!, raw, true) : undefined,
   });
@@ -99,6 +99,7 @@ export function subscribeEvents(onEvent: (event: EventPayload) => void, onReconn
     'task.reminder',
     'exam.scored',
     'policy.updated',
+    'teaching.task.assigned',
   ])
     source.addEventListener(name, (message) => {
       try {

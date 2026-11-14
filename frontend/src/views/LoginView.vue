@@ -1,17 +1,33 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { request } from '../api/client';
 import { backend } from '../api/backend';
 import { useAppStore } from '../stores/app';
 import { useLoad } from '../composables/useLoad';
 import AppIcon from '../components/AppIcon.vue';
+import { roleHome, allowedRolePath } from '../domain/auth';
 
 const app = useAppStore();
 const router = useRouter();
 const route = useRoute();
 const { status, error, run } = useLoad();
 const registering = ref(false);
-const loginName = ref('');
+const email = ref('');
+const code = ref('');
+const acceptedTerms = ref(false);
+const forgot = ref(false);
+const sent = ref('');
+const showTerms = ref(false);
+const settingPassword = computed(() => registering.value || forgot.value);
+async function sendCode() {
+  if (!email.value.trim()) { error.value = '请输入邮箱'; return; }
+  const result = await run(() => request('/auth/email/code', {
+    method: 'POST', body: { email: email.value, purpose: forgot.value ? 'RESET' : 'REGISTER' },
+  }));
+  if (result) sent.value = '请求已受理，请查看邮箱。';
+}
+
 const displayName = ref('');
 const password = ref('');
 const confirmPassword = ref('');
@@ -27,6 +43,9 @@ const fireflies = Array.from({ length: 32 }, (_, i) => ({
 }));
 function changeTab(value: boolean) {
   registering.value = value;
+  forgot.value = false;
+  code.value = '';
+  sent.value = '';
   password.value = '';
   confirmPassword.value = '';
   error.value = '';
@@ -34,27 +53,35 @@ function changeTab(value: boolean) {
 async function submit() {
   if (busy.value) return;
   error.value = '';
-  if (!/^[a-zA-Z0-9_]{3,32}$/.test(loginName.value.trim())) {
-    error.value = '账号需为3～32位字母、数字或下划线';
-    return;
-  }
   if (new TextEncoder().encode(password.value).length > 72) {
     error.value = '密码长度不能超过72字节';
     return;
   }
-  if (registering.value && (!/[a-zA-Z]/.test(password.value) || !/\d/.test(password.value))) {
+  if (settingPassword.value && (!/[a-zA-Z]/.test(password.value) || !/\d/.test(password.value))) {
     error.value = '密码必须同时包含字母和数字';
     return;
   }
-  if (registering.value && password.value !== confirmPassword.value) {
+  if (settingPassword.value && password.value !== confirmPassword.value) {
     error.value = '两次输入的密码不一致';
     return;
   }
-  const user = await run(() =>
-    registering.value
-      ? backend.register(loginName.value.trim(), password.value, displayName.value.trim())
-      : backend.login(loginName.value.trim(), password.value),
-  );
+  if (forgot.value) {
+    const complete = await run(async () => {
+      await request('/auth/password/reset', {
+        method: 'POST', body: { email: email.value, code: code.value,
+          password: password.value, confirmPassword: confirmPassword.value },
+      });
+      return true;
+    });
+    if (complete) {
+      changeTab(false);
+      sent.value = '密码已重置，请使用新密码登录。';
+    }
+    return;
+  }
+  const user = await run(() => registering.value
+    ? backend.register(email.value, password.value, displayName.value, code.value, confirmPassword.value, acceptedTerms.value)
+    : backend.login(email.value, password.value));
   if (!user) return;
   password.value = '';
   confirmPassword.value = '';
@@ -66,9 +93,9 @@ async function submit() {
     typeof target === 'string' &&
     /^\/(?!\/)/.test(target) &&
     !target.includes('\\') &&
-    !target.startsWith('/login')
+    !target.startsWith('/login') && allowedRolePath(user, target.split('?')[0]!)
       ? target
-      : '/dashboard';
+      : roleHome(user);
   await router.replace(redirect);
 }
 function demo() {
@@ -90,10 +117,10 @@ function demo() {
         >陪你，向理想生长</span
       ></a
     >
-    <section class="auth-card" aria-labelledby="auth-title">
+    <section class="auth-card" :class="{ 'role-login': !registering }" aria-labelledby="auth-title">
       <div class="auth-emblem"><AppIcon name="sparkles" :size="29" /></div>
       <p class="auth-eyebrow">A LITTLE LIGHT, A LONG WAY</p>
-      <h1 id="auth-title">{{ registering ? '开启你的研途' : '每一份努力，都有微光' }}</h1>
+      <h1 id="auth-title">{{ forgot ? '重置密码' : registering ? '开启你的研途' : '每一份努力，都有微光' }}</h1>
       <p class="auth-subtitle">
         {{ registering ? '种下一个目标，让未来慢慢发芽。' : '欢迎回来，继续向心中的理想靠近。' }}
       </p>
@@ -128,19 +155,27 @@ function demo() {
             required
             :disabled="busy"
         /></label>
-        <label class="auth-field" for="login-name"
-          >账号<input
-            id="login-name"
-            v-model="loginName"
+        <label class="auth-field" for="email"
+          >邮箱<input
+            id="email"
+            v-model="email"
+            type="email"
             autocomplete="username"
             autocapitalize="none"
             spellcheck="false"
-            placeholder="3～32位字母、数字或下划线"
-            minlength="3"
-            maxlength="32"
+            placeholder="请输入注册邮箱"
+            maxlength="254"
             required
             :disabled="busy"
         /></label>
+        <label v-if="settingPassword" class="auth-field" for="email-code">
+          邮箱验证码
+          <span class="password-wrap">
+            <input id="email-code" v-model="code" inputmode="numeric" autocomplete="one-time-code"
+              pattern="[0-9]{6}" maxlength="6" required />
+            <button type="button" :disabled="busy" @click="sendCode">获取验证码</button>
+          </span>
+        </label>
         <label class="auth-field" for="password"
           >密码<span class="password-wrap"
             ><input
@@ -148,8 +183,8 @@ function demo() {
               aria-label="密码"
               v-model="password"
               :type="reveal ? 'text' : 'password'"
-              :autocomplete="registering ? 'new-password' : 'current-password'"
-              :placeholder="registering ? '至少8位，包含字母和数字' : '请输入你的密码'"
+              :autocomplete="settingPassword ? 'new-password' : 'current-password'"
+              :placeholder="settingPassword ? '至少8位，包含字母和数字' : '请输入你的密码'"
               minlength="8"
               maxlength="72"
               required
@@ -164,7 +199,7 @@ function demo() {
             </button></span
           ></label
         >
-        <label v-if="registering" class="auth-field" for="confirm-password"
+        <label v-if="settingPassword" class="auth-field" for="confirm-password"
           >确认密码<input
             id="confirm-password"
             v-model="confirmPassword"
@@ -176,9 +211,17 @@ function demo() {
             required
             :disabled="busy"
         /></label>
+        <div v-if="registering">
+          <label><input v-model="acceptedTerms" type="checkbox" required /> 我已阅读并同意用户协议</label>
+          <button type="button" class="auth-demo" @click="showTerms = !showTerms">查看协议</button>
+          <p v-if="showTerms" class="muted">请使用本人可控制的邮箱，保管账号和验证码。邮箱用于账号验证和找回。请勿利用平台侵害他人权益。</p>
+        </div>
+        <button v-if="!settingPassword" type="button" class="auth-demo" :disabled="busy"
+          @click="changeTab(false); forgot = true">忘记密码</button>
+        <p v-if="sent" role="status" class="muted">{{ sent }}</p>
         <p v-if="error" class="auth-error" role="alert">{{ error }}</p>
         <button class="auth-submit" :disabled="busy" type="submit">
-          <span>{{ busy ? '正在为你准备…' : registering ? '注册并开启学习' : '登录学习空间' }}</span
+          <span>{{ busy ? '正在为你准备…' : forgot ? '重置密码' : registering ? '注册并开启学习' : '登录学习空间' }}</span
           ><AppIcon v-if="!busy" name="arrow" :size="18" /><span
             v-else
             class="auth-spinner"
@@ -200,6 +243,10 @@ function demo() {
 </template>
 
 <style scoped>
+.auth-role { display: flex !important; align-items: center; justify-content: space-between; }
+.auth-role select { flex: 1; max-width: 190px; min-width: 0; height: 32px; padding: 0 10px; border: 1px solid #d3dfd8; border-radius: 10px; background: white; font: inherit; }
+.role-login .auth-form { gap: 12px; }
+.role-login .auth-emblem { width: 44px; height: 44px; margin-bottom: 10px; }
 .auth-page {
   --leaf: #397956;
   position: relative;
@@ -523,6 +570,14 @@ function demo() {
   }
 }
 @media (max-width: 520px) {
+  .role-login .auth-emblem {
+    width: 32px;
+    height: 32px;
+    margin-bottom: 8px;
+  }
+  .role-login .auth-tabs {
+    margin: 14px 0 12px;
+  }
   .auth-page {
     padding: 54px 18px !important;
   }

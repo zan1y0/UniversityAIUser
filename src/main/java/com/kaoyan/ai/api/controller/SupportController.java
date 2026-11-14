@@ -5,6 +5,10 @@ import com.kaoyan.ai.api.contract.ApiExecutor;
 import com.kaoyan.ai.service.task.EventService;
 import com.kaoyan.ai.infrastructure.storage.FileService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import com.kaoyan.ai.service.auth.EmailAuthService;
+import com.kaoyan.ai.service.auth.JwtService;
+import static com.kaoyan.ai.common.Jsons.obj;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,11 +19,15 @@ public class SupportController {
   private final ApiExecutor api;
   private final FileService files;
   private final EventService events;
+  private final EmailAuthService auth;
+  private final JwtService jwt;
 
-  public SupportController(ApiExecutor api, FileService files, EventService events) {
+  public SupportController(ApiExecutor api, FileService files, EventService events, EmailAuthService auth, JwtService jwt) {
     this.api = api;
     this.files = files;
     this.events = events;
+    this.auth = auth;
+    this.jwt = jwt;
   }
 
   /** op001：获取 CSRF 令牌 */
@@ -36,8 +44,9 @@ public class SupportController {
   public ResponseEntity<?> op002(
       @PathVariable Map<String, String> paths,
       @RequestBody(required = false) JsonNode body,
-      HttpServletRequest request) {
-    return api.execute("op002", paths, body, request);
+      HttpServletRequest request, HttpServletResponse response) {
+    return ResponseEntity.ok(obj("code", "OK", "message", "操作成功",
+        "data", auth.login(body, request, response, true), "traceId", request.getAttribute("traceId")));
   }
 
   /** op003：退出登录 */
@@ -45,7 +54,8 @@ public class SupportController {
   public ResponseEntity<?> op003(
       @PathVariable Map<String, String> paths,
       @RequestBody(required = false) JsonNode body,
-      HttpServletRequest request) {
+      HttpServletRequest request, HttpServletResponse response) {
+    jwt.revoke(request, response);
     return api.execute("op003", paths, body, request);
   }
 

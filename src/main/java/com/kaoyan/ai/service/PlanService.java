@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.node.*;
 import com.kaoyan.ai.common.*;
 import com.kaoyan.ai.persistence.repository.RecordRepository;
+import com.kaoyan.ai.service.task.StudyFocusService;
 import java.time.*;
 import java.util.*;
 import org.springframework.stereotype.Service;
@@ -15,11 +16,13 @@ public class PlanService {
   private final RecordRepository db;
   private final ProfileService profiles;
   private final CatalogService catalog;
+  private final StudyFocusService focus;
 
-  public PlanService(RecordRepository db, ProfileService profiles, CatalogService catalog) {
+  public PlanService(RecordRepository db, ProfileService profiles, CatalogService catalog, StudyFocusService focus) {
     this.db = db;
     this.profiles = profiles;
     this.catalog = catalog;
+    this.focus = focus;
   }
 
   public ObjectNode get(String user, String id) {
@@ -216,6 +219,7 @@ public class PlanService {
         } else {
           if (!p.path("status").asText().equals("active")) throw ApiException.state("仅生效计划可完成任务");
           if (task.path("status").asText().equals("completed")) throw ApiException.state("任务已完成");
+          focus.finishForCompletion(uid, task.path("id").asText(), Instant.now());
           task.put("status", "completed");
           task.put("completedAt", now());
         }

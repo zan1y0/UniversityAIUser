@@ -12,6 +12,8 @@ import ContractResult from './ContractResult.vue';
 import AvatarGuide from './AvatarGuide.vue';
 import ChatPanel from './ChatPanel.vue';
 import ChartPanel from './ChartPanel.vue';
+import SchoolProgramSearch from './SchoolProgramSearch.vue';
+import SchoolDecisionPanel from './SchoolDecisionPanel.vue';
 import { useSpeech } from '../composables/useSpeech';
 import { sessionValue, saveSessionValue, removeSessionValue } from '../domain/session-storage';
 
@@ -32,9 +34,14 @@ const moduleMap: Record<string, string> = {
   '/news': 'M11',
 };
 const moduleId = computed(() => moduleMap[route.path]);
+const inlineLearningResults = computed(() =>
+  ['M03', 'M04', 'M05', 'M06', 'M07', 'M08', 'M09', 'M11'].includes(moduleId.value || ''),
+);
 const actionIds = computed(() =>
   Object.entries(operations)
-    .filter(([, o]) => o.tag.startsWith(moduleId.value || '__'))
+    .filter(
+      ([, o]) => o.tag.startsWith(moduleId.value || '__') && !o.path.startsWith('/api/v1/study-'),
+    )
     .map(([id]) => id as OperationId),
 );
 const extras = computed(() =>
@@ -44,7 +51,7 @@ const extras = computed(() =>
       ? (['op006', 'op007', 'op008'] as OperationId[])
       : [],
 );
-const active = ref<OperationId>('op072');
+const active = ref<OperationId>(moduleId.value === 'M02' ? 'op019' : 'op072');
 const form = ref<Input>({});
 const op = computed(() => operations[active.value]!);
 const response = ref<unknown>();
@@ -338,6 +345,7 @@ async function run(retry = false) {
   error.value = '';
   statusText.value = op.value.status === 202 ? '正在提交学习任务…' : '正在处理…';
   transient.value = '';
+  if (inlineLearningResults.value && op.value.method === 'GET') response.value = undefined;
   try {
     let input: Input;
     let key: string | undefined;
@@ -551,7 +559,7 @@ async function initialize() {
         /* 关联列表失败不阻断无关模块；依赖选择的操作显示空选择。 */
       }
     }
-    if (!catalog.options('subjectId').length) {
+    if (moduleId.value !== 'M03' && !catalog.options('subjectId').length) {
       try {
         catalog.collect(
           await execute(
@@ -580,7 +588,14 @@ async function initialize() {
     }
     const initial = primary[moduleId.value || ''];
     if (initial) choose(initial);
-    if (initial && operations[initial]!.method === 'GET') await run();
+    if (inlineLearningResults.value) response.value = undefined;
+    if (
+      initial &&
+      initial !== 'op019' &&
+      operations[initial]!.method === 'GET' &&
+      !inlineLearningResults.value
+    )
+      await run();
     if (moduleId.value === 'M08' && app.user) {
       const stored = sessionValue(`kaoyan-exam:${app.user.id}`);
       if (stored) {
@@ -657,8 +672,7 @@ onMounted(async () => {
       else if (event.type === 'exam.scored') app.notify('模考评分已完成，可以查看成绩。');
     },
     () => {
-      if (moduleId.value === 'M11' && !loading.value) {
-        choose('op080');
+      if (active.value === 'op080' && response.value !== undefined && !loading.value) {
         void run();
       }
     },
@@ -695,14 +709,32 @@ onBeforeUnmount(() => {
           :key="id"
           class="chip"
           :class="{ active: active === id }"
-          :disabled="loading"
+          :disabled="initializing || loading"
           @click="choose(id)"
         >
           {{ buttonTitle(id) }}
         </button>
       </div>
     </section>
-    <div class="contract-columns section-gap">
+    <SchoolProgramSearch v-if="active === 'op019'" :initial-year="filters.year" />
+    <SchoolDecisionPanel
+      v-else-if="
+        active === 'op020' ||
+        active === 'op021' ||
+        active === 'op022' ||
+        active === 'op023' ||
+        active === 'op024'
+      "
+      :key="active"
+      :operation="active"
+      :initial-year="filters.year"
+      :title="buttonTitle(active)"
+    />
+    <div
+      v-else
+      :class="inlineLearningResults ? 'contract-stacked' : 'contract-columns'"
+      class="section-gap"
+    >
       <section class="card">
         <div class="card-heading">
           <h2>{{ buttonTitle(active) }}</h2>
@@ -740,42 +772,48 @@ onBeforeUnmount(() => {
           }}。截止时间以服务端为准。
         </p>
         <form class="contract-form space-top" @submit.prevent="run()">
-          <template v-for="where in ['path', 'query'] as const" :key="where">
-            <template v-for="parameter in parameters(where)" :key="parameter.name">
-              <label
-                v-if="!parameter.required && !technicalFields.has(parameter.name)"
-                class="optional-toggle"
-                ><input
-                  type="checkbox"
-                  :checked="parameter.name in (form[where] || {})"
-                  @change="
-                    (event) => {
-                      if ((event.target as HTMLInputElement).checked)
-                        updateParameter(
-                          where,
-                          parameter.name,
-                          selectDefault(parameter.schema, parameter.name),
-                        );
-                      else {
-                        const next = { ...form[where] };
-                        delete next[parameter.name];
-                        form[where] = next;
-                      }
-                    }
-                  "
-                />按{{ label(parameter.name) }}筛选</label
+          <div class="contract-parameters">
+            <template v-for="where in ['path', 'query'] as const" :key="where">
+              <div
+                v-for="parameter in parameters(where)"
+                :key="parameter.name"
+                class="contract-parameter"
               >
-              <ContractField
-                v-if="parameter.required || parameter.name in (form[where] || {})"
-                :name="where === 'path' ? referenceName(active, parameter.name) : parameter.name"
-                :schema="parameter.schema"
-                :model-value="form[where]?.[parameter.name]"
-                :required="parameter.required"
-                :question-id="selectedQuestion"
-                @update:model-value="updateParameter(where, parameter.name, $event)"
-              />
+                <label
+                  v-if="!parameter.required && !technicalFields.has(parameter.name)"
+                  class="optional-toggle"
+                  ><input
+                    type="checkbox"
+                    :checked="parameter.name in (form[where] || {})"
+                    @change="
+                      (event) => {
+                        if ((event.target as HTMLInputElement).checked)
+                          updateParameter(
+                            where,
+                            parameter.name,
+                            selectDefault(parameter.schema, parameter.name),
+                          );
+                        else {
+                          const next = { ...form[where] };
+                          delete next[parameter.name];
+                          form[where] = next;
+                        }
+                      }
+                    "
+                  />按{{ label(parameter.name) }}筛选</label
+                >
+                <ContractField
+                  v-if="parameter.required || parameter.name in (form[where] || {})"
+                  :name="where === 'path' ? referenceName(active, parameter.name) : parameter.name"
+                  :schema="parameter.schema"
+                  :model-value="form[where]?.[parameter.name]"
+                  :required="parameter.required"
+                  :question-id="selectedQuestion"
+                  @update:model-value="updateParameter(where, parameter.name, $event)"
+                />
+              </div>
             </template>
-          </template>
+          </div>
           <template v-if="op.multipart"
             ><label class="field"
               >题目图片或回答录音<input
@@ -814,9 +852,6 @@ onBeforeUnmount(() => {
           </p>
           <p v-if="active === 'op060'" class="muted small">
             完整作答后会自动保存，保存完成才可交卷；成绩由服务端批改。
-          </p>
-          <p v-if="active === 'op023'" class="muted small">
-            缺少可核验资料时，概率显示“暂无可用数据”，不以虚构数值代替。
           </p>
           <p v-if="active === 'op065'" class="muted small">
             英语口语模式请同时选择英语；可使用文字回答，录音须由你主动授权。
@@ -869,8 +904,12 @@ onBeforeUnmount(() => {
           class="stretch space-top"
         />
       </section>
-      <section class="card contract-output" aria-label="学习内容与结果">
-        <div class="card-heading">
+      <section
+        v-if="!inlineLearningResults || response !== undefined || transient"
+        class="card contract-output"
+        :aria-label="inlineLearningResults ? '操作结果' : '学习内容与结果'"
+      >
+        <div v-if="!inlineLearningResults" class="card-heading">
           <h2>{{ moduleId === 'M10' ? '学习数据与反馈' : '学习内容与结果' }}</h2>
           <span v-if="loading" class="tag">正在处理</span>
         </div>
@@ -890,7 +929,7 @@ onBeforeUnmount(() => {
           选择要进行的学习操作，完成后在这里查看题目、讲解、反馈或记录。服务暂不可用时会明确显示错误，不混入演示数据。
         </p>
         <p
-          v-if="['M02', 'M03', 'M04', 'M11'].includes(moduleId || '')"
+          v-if="!inlineLearningResults && ['M02', 'M03', 'M04', 'M11'].includes(moduleId || '')"
           class="muted small space-top"
         >
           院校指标、教材和政策以核验来源为准，生成内容需结合原始资料确认。
@@ -899,3 +938,29 @@ onBeforeUnmount(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.contract-stacked {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+.contract-parameters,
+.contract-parameter {
+  display: contents;
+}
+.contract-stacked .contract-parameters:has(.contract-parameter) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  align-items: start;
+  gap: 14px;
+}
+.contract-stacked .contract-parameter {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.contract-stacked .contract-parameter :deep(.field) {
+  margin: 0;
+}
+</style>

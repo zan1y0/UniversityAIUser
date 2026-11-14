@@ -32,6 +32,10 @@ playwright-report/
 .aws/
 .ssh/
 
+# 抓取产物与本机数据（数百 MB，不入库；脚本与 SQL 仍保留）
+/data/
+/scripts/scrape/_cache/
+
 # 本地数据库、数据库备份及私有上传文件；SQL建表脚本仍保留
 *.db
 *.db-*

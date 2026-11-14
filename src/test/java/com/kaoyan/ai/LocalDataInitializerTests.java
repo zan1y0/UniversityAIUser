@@ -14,7 +14,7 @@ class LocalDataInitializerTests {
     for (String password : new String[] {"", "  \t"}) {
       var records = mock(RecordRepository.class);
       var accounts = mock(UserAccountRepository.class);
-      var initializer = new LocalDataInitializer(records, true, password, accounts);
+      var initializer = new LocalDataInitializer(records, true, password, accounts, org.mockito.Mockito.mock(com.kaoyan.ai.persistence.mapper.IdentityMapper.class));
 
       var error = assertThrows(IllegalStateException.class, () -> initializer.run(null));
 
@@ -30,7 +30,7 @@ class LocalDataInitializerTests {
     var accounts = mock(UserAccountRepository.class);
     when(accounts.existsById(LocalDataInitializer.USER)).thenReturn(true);
 
-    new LocalDataInitializer(records, true, "", accounts).run(null);
+    new LocalDataInitializer(records, true, "", accounts, org.mockito.Mockito.mock(com.kaoyan.ai.persistence.mapper.IdentityMapper.class)).run(null);
 
     verify(accounts, never()).create(any());
     verifyNoInteractions(records);
@@ -41,8 +41,8 @@ class LocalDataInitializerTests {
     var records = mock(RecordRepository.class);
     var accounts = mock(UserAccountRepository.class);
 
-    new LocalDataInitializer(records, false, "", accounts).run(null);
+    new LocalDataInitializer(records, false, "", accounts, org.mockito.Mockito.mock(com.kaoyan.ai.persistence.mapper.IdentityMapper.class)).run(null);
 
-    verifyNoInteractions(records, accounts);
+    verifyNoInteractions(records, accounts, org.mockito.Mockito.mock(com.kaoyan.ai.persistence.mapper.IdentityMapper.class));
   }
 }

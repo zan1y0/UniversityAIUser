@@ -1,4 +1,23 @@
 spring:
+  config:
+    # 本机邮件账号：已被 .gitignore 忽略，授权码不进仓库，也不进 IDEA 运行配置。
+    # 文件缺失或留空时只是不注册 JavaMailSender，业务仍可启动。
+    import: optional:file:./.local-data/mail-local.properties
+  mail:
+    host: ${APP_SMTP_HOST:}
+    port: ${APP_SMTP_PORT:587}
+    username: ${APP_SMTP_USERNAME:}
+    password: ${APP_SMTP_PASSWORD:}
+    default-encoding: UTF-8
+    properties:
+      "[mail.smtp.auth]": ${APP_SMTP_AUTH:true}
+      "[mail.smtp.starttls.enable]": ${APP_SMTP_STARTTLS:true}
+      "[mail.smtp.starttls.required]": ${APP_SMTP_STARTTLS:true}
+      # 465 隐式 TLS 需要这一项，同时把 APP_SMTP_STARTTLS 设为 false；两者同时为 true 会握手失败。
+      "[mail.smtp.ssl.enable]": ${APP_SMTP_SSL:false}
+      "[mail.smtp.connectiontimeout]": 5000
+      "[mail.smtp.timeout]": 5000
+      "[mail.smtp.writetimeout]": 5000
   application:
     name: kaoyan-ai-server
   profiles:
@@ -26,6 +45,10 @@ springdoc:
   swagger-ui:
     url: /contract/openapi.json
 app:
+  account-mail:
+    from: ${APP_MAIL_FROM:}
+    code-secret: ${APP_EMAIL_CODE_SECRET:}
+    public-url: ${APP_PUBLIC_URL:http://localhost:5173}
   cors:
     allowed-origins: ${APP_ALLOWED_ORIGINS:http://127.0.0.1:5173,http://localhost:5173}
   jwt:

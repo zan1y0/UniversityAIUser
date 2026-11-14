@@ -1,93 +1,54 @@
 package com.kaoyan.ai.api.security;
-
-import com.kaoyan.ai.service.auth.SessionService;
-import static com.kaoyan.ai.common.Jsons.*;
-
-import com.kaoyan.ai.common.*;
+import static com.kaoyan.ai.common.Jsons.id;
+import com.kaoyan.ai.common.ApiException;
+import com.kaoyan.ai.service.auth.*;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.util.*;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
-
-@Component
+/** 仅在SecurityFilterChain中运行，将已校验的JWT/旧会话转为Spring Security身份。 */
 public class SessionFilter extends OncePerRequestFilter {
-  private final Set<String> origins;
-  private final SessionService sessions;
-
-  public SessionFilter(SessionService sessions,
-      @Value("${app.cors.allowed-origins:http://127.0.0.1:5173,http://localhost:5173}") String allowedOrigins) {
-    this.sessions = sessions;
-    this.origins = new HashSet<>(Arrays.asList(allowedOrigins.split(",")));
+  static final Set<String> PUBLIC = Set.of("/api/v1/session/csrf", "/api/v1/session/login", "/api/v1/auth/login",
+      "/api/v1/auth/register", "/api/v1/auth/email/code", "/api/v1/auth/password/reset",
+      "/api/v1/auth/invitation/check", "/api/v1/auth/invitation/activate");
+  public static String path(HttpServletRequest request) {
+    return request.getRequestURI().substring(request.getContextPath().length());
   }
-
-  @Override
-  protected void doFilterInternal(HttpServletRequest r, HttpServletResponse w, FilterChain chain)
-      throws ServletException, IOException {
-    r.setAttribute("traceId", id());
-    w.setHeader("X-Content-Type-Options", "nosniff");
-    w.setHeader("Cache-Control", "no-store");
-    String origin = r.getHeader("Origin");
-    if (origin != null && origins.contains(origin)) {
-      w.setHeader("Access-Control-Allow-Origin", origin);
-      w.setHeader("Vary", "Origin");
-      w.setHeader("Access-Control-Allow-Credentials", "true");
-      w.setHeader(
-          "Access-Control-Allow-Headers",
-          "Content-Type,Authorization,X-CSRF-Token,Idempotency-Key,Last-Event-ID");
-      w.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-    }
-    if (r.getMethod().equals("OPTIONS")) {
-      w.setStatus(204);
-      return;
-    }
+  private final JwtService jwt;
+  private final PermissionService permissions;
+  public SessionFilter(JwtService jwt,PermissionService permissions) { this.jwt=jwt;this.permissions=permissions; }
+  protected void doFilterInternal(HttpServletRequest r,HttpServletResponse w,FilterChain chain) throws ServletException,IOException {
+    r.setAttribute("traceId",id());
+    boolean publicRoute = PUBLIC.contains(path(r));
     try {
-      if (r.getRequestURI().startsWith("/api/v1/")) {
-        HttpSession s = r.getSession(false);
-        boolean publicRoute =
-            Set.of("/api/v1/session/csrf", "/api/v1/session/login",
-                "/api/v1/auth/login", "/api/v1/auth/register").contains(r.getRequestURI());
-        if (!publicRoute) sessions.user(r);
-        if (!Set.of("GET", "HEAD").contains(r.getMethod())) {
-          String expected = s == null ? null : (String) s.getAttribute("csrf"),
-              actual = r.getHeader("X-CSRF-Token");
-          if (expected == null
-              || actual == null
-              || !MessageDigest.isEqual(
-                  expected.getBytes(StandardCharsets.UTF_8),
-                  actual.getBytes(StandardCharsets.UTF_8))
-              || (origin != null
-                  && !origins.contains(origin)
-                  && !origin.equals(r.getScheme() + "://" + r.getServerName()
-                      + ((r.getServerPort() == 80 && r.getScheme().equals("http"))
-                          || (r.getServerPort() == 443 && r.getScheme().equals("https"))
-                          ? "" : ":" + r.getServerPort()))))
-            throw new ApiException(403, "CSRF_REJECTED", "CSRF 校验失败，请重新获取令牌");
+      if(path(r).startsWith("/api/v1/") && !publicRoute && !r.getMethod().equals("OPTIONS")) {
+        String user = null, role = null;
+        Object version = null;
+        var token=jwt.token(r);
+        if(token.isPresent()) {
+          var verified=jwt.verify(token.get()); user=verified.getSubject();
+          role = verified.getClaimAsString("activeRole");
+          version = verified.getClaims().get("authVersion");
+        } else {
+          var session=r.getSession(false);
+          if(session!=null) { user=(String)session.getAttribute("userId");
+            if(session.getAttribute("activeRole") instanceof String selected)role=selected;
+            version = session.getAttribute("authVersion"); }
         }
+        if(user==null)throw new ApiException(401,"UNAUTHENTICATED","请先登录");
+        var granted = permissions.validate(user, role, version);
+        var authorities=new ArrayList<SimpleGrantedAuthority>();
+        authorities.add(new SimpleGrantedAuthority("ROLE_"+role));
+        granted.forEach(p->authorities.add(new SimpleGrantedAuthority(p)));
+        var context=SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(new UsernamePasswordAuthenticationToken(new RequestIdentity(user,role),null,authorities));
+        SecurityContextHolder.setContext(context);
       }
-      chain.doFilter(r, w);
-    } catch (ApiException e) {
-      w.setStatus(e.status());
-      if (e.status() == 429) w.setHeader("Retry-After", "60");
-      w.setContentType("application/json;charset=UTF-8");
-      w.getWriter()
-          .write(
-              obj(
-                      "code",
-                      e.code(),
-                      "message",
-                      e.getMessage(),
-                      "data",
-                      null,
-                      "traceId",
-                      r.getAttribute("traceId"),
-                      "details",
-                      arr())
-                  .toString());
-    }
+      chain.doFilter(r,w);
+    } catch(ApiException e) { SecurityErrors.write(r,w,e.status(),e.code(),e.getMessage()); }
   }
 }

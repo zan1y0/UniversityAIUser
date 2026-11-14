@@ -838,20 +838,60 @@
   "op082": {
     "id": "00000001-1111-4111-8111-111111111111",
     "loginName": "student",
-    "displayName": "联调同学"
+    "displayName": "联调同学",
+    "activeRole": "STUDENT",
+    "roles": ["STUDENT"],
+    "permissions": [
+      "student:study:use",
+      "student:analytics:read",
+      "student:teacher:manage",
+      "student:task:read",
+      "student:task:complete"
+    ]
   },
   "op083": {
     "id": "00000001-1111-4111-8111-111111111111",
     "loginName": "student",
-    "displayName": "联调同学"
+    "displayName": "联调同学",
+    "activeRole": "STUDENT",
+    "roles": ["STUDENT"],
+    "permissions": [
+      "student:study:use",
+      "student:analytics:read",
+      "student:teacher:manage",
+      "student:task:read",
+      "student:task:complete"
+    ]
   },
   "op084": {
     "id": "00000001-1111-4111-8111-111111111111",
     "loginName": "student",
-    "displayName": "联调同学"
+    "displayName": "联调同学",
+    "activeRole": "STUDENT",
+    "roles": ["STUDENT"],
+    "permissions": [
+      "student:study:use",
+      "student:analytics:read",
+      "student:teacher:manage",
+      "student:task:read",
+      "student:task:complete"
+    ]
   },
   "op085": null,
   "op086": {
     "id": "11111111-1111-4111-8111-111111111111"
+  },
+  "op097": { "mode": "GENTLE" },
+  "op098": { "mode": "STRICT" },
+  "op099": {
+    "mode": "GENTLE",
+    "date": "2026-11-10",
+    "tasks": [],
+    "reminders": [],
+    "timers": [],
+    "feedback": null
+  },
+  "op100": {
+    "ok": true
   }
 }

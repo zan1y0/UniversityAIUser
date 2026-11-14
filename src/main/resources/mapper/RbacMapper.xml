@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kaoyan.ai.persistence.mapper.RbacMapper">
+
+  <select id="roles" resultType="string">SELECT role_code FROM sys_user_roles WHERE user_id=#{user} ORDER BY role_code</select>
+  <select id="permissions" resultType="string">SELECT permission_code FROM sys_role_permissions WHERE role_code=#{role} ORDER BY permission_code</select>
+  <insert id="grant">INSERT INTO sys_user_roles(user_id,role_code) VALUES (#{user},#{role})</insert>
+  <delete id="revoke">DELETE FROM sys_user_roles WHERE user_id=#{user} AND role_code=#{role}</delete>
+
+</mapper>

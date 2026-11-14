@@ -9,6 +9,9 @@ public interface UserAccountMapper {
 
   UserAccount findByLoginName(@Param("loginName") String loginName);
   UserAccount findById(@Param("id") String id);
+  UserAccount findTeacherByLoginName(@Param("loginName") String loginName);
+  UserAccount findTeacherById(@Param("id") String id);
+  int insertTeacherCredentials(UserAccount account);
   int countById(@Param("id") String id);
   int insert(UserAccount account);
   String lockById(@Param("id") String id);

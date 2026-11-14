@@ -31,16 +31,18 @@ public class LocalDataInitializer implements ApplicationRunner {
   private final boolean seed;
   private final String studentPassword;
   private final UserAccountRepository accounts;
+  private final com.kaoyan.ai.persistence.mapper.IdentityMapper identities;
 
   public LocalDataInitializer(
       RecordRepository db,
       @Value("${app.seed-local:false}") boolean seed,
       @Value("${app.local-student-password:}") String studentPassword,
-      UserAccountRepository accounts) {
+      UserAccountRepository accounts, com.kaoyan.ai.persistence.mapper.IdentityMapper identities) {
     this.db = db;
     this.seed = seed;
     this.studentPassword = studentPassword;
     this.accounts = accounts;
+    this.identities = identities;
   }
 
   @Override
@@ -316,6 +318,7 @@ public class LocalDataInitializer implements ApplicationRunner {
     accounts.create(
         new UserAccount(
             uid, login, display, new BCryptPasswordEncoder(12).encode(studentPassword)));
+    identities.markDevelopmentAccount(uid, login + "@example.test");
     ObjectNode profile =
         obj(
             "user",

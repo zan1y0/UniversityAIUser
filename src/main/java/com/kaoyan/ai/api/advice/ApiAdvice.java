@@ -43,6 +43,11 @@ public class ApiAdvice {
     return business(new ApiException(400, "INVALID_REQUEST", "请求内容或文件大小不符合契约"), r);
   }
 
+  @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+  public ResponseEntity<?> forbidden(Exception e, HttpServletRequest r) {
+    return business(new ApiException(403,"FORBIDDEN","当前角色没有此操作权限"),r);
+  }
+
   @ExceptionHandler(Exception.class)
   public ResponseEntity<?> unexpected(Exception e, HttpServletRequest r) {
     LOG.error("请求失败 traceId={}", r.getAttribute("traceId"), e);

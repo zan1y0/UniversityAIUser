@@ -108,16 +108,16 @@ public class CatalogService {
               q);
       case "op020" -> {
         List<JsonNode> list = new ArrayList<>();
+        Set<String> regions = new HashSet<>();
+        b.path("regions").forEach(region -> regions.add(region.asText()));
+        boolean hasScore = b.path("estimatedScore").isNumber();
         for (ObjectNode p : records("programs")) {
-          boolean region = false;
-          for (JsonNode r : b.path("regions"))
-            if (r.asText().equals(p.path("region").asText())) region = true;
-          if (region
+          if ((regions.isEmpty() || regions.contains(p.path("region").asText()))
               && p.path("year").asInt() == c.integer("year")
               && p.path("difficulty").asText().equals(c.b("difficulty"))) {
-            double score =
-                p.path("scoreLine").isNull()
-                    ? 50
+            Double score =
+                !hasScore || !p.path("scoreLine").isNumber()
+                    ? null
                     : Math.max(
                         0,
                         Math.min(
@@ -133,12 +133,13 @@ public class CatalogService {
                     "matchScore",
                     score,
                     "reasons",
-                    arr("根据目标地区、难度与分数匹配"),
+                    arr(regions.isEmpty() ? "符合所选年份和系统梯度" : "符合所选年份、意向地区和系统梯度",
+                        score != null ? "已参考总分和复试线" : hasScore ? "该专业暂无复试线" : "本次未填写参考总分"),
                     "risks",
                     arr("匹配分不等于录取概率，请以当年官方招生信息为准")));
           }
         }
-        list.sort(Comparator.comparingDouble(x -> -x.path("matchScore").asDouble()));
+        list.sort(Comparator.comparingDouble(x -> -x.path("matchScore").asDouble(-1)));
         yield obj("items", list);
       }
       case "op021" -> {

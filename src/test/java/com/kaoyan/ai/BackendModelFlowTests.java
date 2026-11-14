@@ -112,7 +112,7 @@ class BackendModelFlowTests {
     call(
         "POST",
         "/session/login",
-        obj("loginName", "student", "password", "LocalStudy2026!"),
+        obj("email", "student@example.test", "password", "LocalStudy2026!"),
         null,
         200);
     csrf = call("GET", "/session/csrf", null, null, 200).path("token").asText();

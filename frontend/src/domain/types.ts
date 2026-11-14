@@ -4,6 +4,10 @@ export type LoadState = 'idle' | 'loading' | 'success' | 'empty' | 'error' | 'ca
 export interface User {
   id: string;
   nickname: string;
+  email?: string;
+  activeRole?: 'STUDENT' | 'TEACHER' | 'ADMIN';
+  roles?: string[];
+  permissions?: string[];
   targetSchool?: string;
   targetMajor?: string;
 }

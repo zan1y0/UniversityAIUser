@@ -23,14 +23,55 @@ test('首屏登录注册居中，手机无横向溢出且支持减少动画', as
   ).toBe('none');
 });
 
-test('真实注册、刷新恢复、退出撤销和重新登录', async ({ page, context }) => {
+test('邮箱注册、刷新恢复、退出撤销和重置密码', async ({ page, context }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  const account = `e2e_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+  const account = 'student@example.test';
+  let active = false;
+  let password = 'Study2026!';
+  let resetStarted = false;
+  const user = { id: '11111111-1111-4111-8111-111111111111', email: account, displayName: '微光同学',
+    activeRole: 'STUDENT', roles: ['STUDENT'], permissions: ['student:study:use'] };
+  await page.route('**/api/v1/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const body = route.request().postDataJSON();
+    const envelope = (data: unknown) => ({ code: 'OK', message: 'ok', traceId: 'test', data });
+    if (path.endsWith('/session/csrf')) return route.fulfill({ json: envelope({ token: 'csrf', headerName: 'X-CSRF-Token' }) });
+    if (path.endsWith('/auth/email/code')) {
+      expect(body.email).toBe(account);
+      expect(body.purpose).toBe(resetStarted ? 'RESET' : 'REGISTER');
+      return route.fulfill({ status: 202, json: envelope({ accepted: true }) });
+    }
+    if (path.endsWith('/auth/register')) {
+      expect(body).toMatchObject({ email: account, password, code: '246810', acceptedTerms: true, displayName: user.displayName });
+      active = true;
+      return route.fulfill({ status: 201, json: envelope(user), headers: { 'Set-Cookie': 'AUTH_TOKEN=test; Path=/; HttpOnly; SameSite=Lax' } });
+    }
+    if (path.endsWith('/auth/logout')) {
+      active = false;
+      return route.fulfill({ status: 204, headers: { 'Set-Cookie': 'AUTH_TOKEN=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax' } });
+    }
+    if (path.endsWith('/auth/password/reset')) {
+      expect(body).toEqual({ email: account, code: '246810', password: 'NewStudy2027!', confirmPassword: 'NewStudy2027!' });
+      password = body.password;
+      return route.fulfill({ status: 204 });
+    }
+    if (path.endsWith('/auth/login')) {
+      if (body.password !== password) return route.fulfill({ status: 401, json: { ...envelope(null), code: 'INVALID_CREDENTIALS', message: '邮箱或密码错误' } });
+      active = true;
+      return route.fulfill({ json: envelope(user) });
+    }
+    if (path.endsWith('/auth/me') && !active) return route.fulfill({ status: 401, json: { ...envelope(null), code: 'UNAUTHENTICATED' } });
+    return route.fulfill({ json: envelope(path.endsWith('/auth/me') ? user : {}) });
+  });
   await page.goto('/');
   await page.getByRole('button', { name: '注册', exact: true }).click();
   await page.getByLabel('昵称', { exact: true }).fill('微光同学');
-  await page.getByLabel('账号', { exact: true }).fill(account);
+  await page.getByLabel('邮箱', { exact: true }).fill(account);
+  await page.getByRole('button', { name: '获取验证码' }).click();
+  await expect(page.getByText('请求已受理，请查看邮箱。')).toBeVisible();
+  await page.locator('#email-code').fill('246810');
+  await page.getByRole('checkbox', { name: /同意用户协议/ }).check();
   await page.getByLabel('密码', { exact: true }).fill('Study2026!');
   await page.getByLabel('确认密码', { exact: true }).fill('Mismatch123');
   await page.getByRole('button', { name: '注册并开启学习' }).click();
@@ -50,12 +91,63 @@ test('真实注册、刷新恢复、退出撤销和重新登录', async ({ page,
   expect((await context.cookies()).some((cookie) => cookie.name === 'AUTH_TOKEN')).toBe(false);
   await page.goto('/planning');
   await expect(page).toHaveURL(/\/login\?redirect=/);
-  await page.getByLabel('账号', { exact: true }).fill(account);
+  await page.getByLabel('邮箱', { exact: true }).fill(account);
   await page.getByLabel('密码', { exact: true }).fill('Wrong2026!');
   await page.getByRole('button', { name: '登录学习空间' }).click();
-  await expect(page.getByRole('alert')).toHaveText('账号或密码错误');
-  await page.getByLabel('密码', { exact: true }).fill('Study2026!');
+  await expect(page.getByRole('alert')).toHaveText('邮箱或密码错误');
+  resetStarted = true;
+  await page.getByRole('button', { name: '忘记密码' }).click();
+  await page.getByRole('button', { name: '获取验证码' }).click();
+  await expect(page.getByText('请求已受理，请查看邮箱。')).toBeVisible();
+  await page.locator('#email-code').fill('246810');
+  await page.getByLabel('密码', { exact: true }).fill('NewStudy2027!');
+  await page.getByLabel('确认密码', { exact: true }).fill('NewStudy2027!');
+  await page.getByRole('button', { name: '重置密码', exact: true }).click();
+  await expect(page.getByText('密码已重置，请使用新密码登录。')).toBeVisible();
+  await page.getByLabel('密码', { exact: true }).fill('NewStudy2027!');
   await page.getByRole('button', { name: '登录学习空间' }).click();
   await expect(page).toHaveURL(/\/planning$/);
   expect(errors).toEqual([]);
+});
+
+test('管理员邮箱登录后进入后台并提交老师邀请', async ({ page }) => {
+  const email = 'operator@example.test';
+  const teacherEmail = 'teacher@example.test';
+  const user = { id: '11111111-1111-4111-8111-111111111111', email, displayName: '平台管理员',
+    activeRole: 'ADMIN', roles: ['ADMIN'], permissions: ['user:list', 'teacher:create'] };
+  let loggedIn = false;
+  let issued = false;
+  await page.route('**/api/v1/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const envelope = (data: unknown) => ({ code: 'OK', message: 'ok', traceId: 'test', data });
+    if (path.endsWith('/session/csrf')) return route.fulfill({ json: envelope({ token: 'csrf', headerName: 'X-CSRF-Token' }) });
+    if (path.endsWith('/auth/login')) {
+      expect(route.request().postDataJSON()).toEqual({ email, password: 'Study2026!' });
+      loggedIn = true;
+      return route.fulfill({ json: envelope(user) });
+    }
+    if (path.endsWith('/auth/me') && !loggedIn) return route.fulfill({ status: 401, json: { ...envelope(null), code: 'UNAUTHENTICATED' } });
+    if (path.endsWith('/admin/teachers')) {
+      expect(route.request().postDataJSON()).toEqual({ email: teacherEmail, displayName: '新老师', reason: '新增指导教师' });
+      issued = true;
+      return route.fulfill({ status: 201, json: envelope({ id: user.id, deliveryStatus: 'SENT' }) });
+    }
+    if (path.endsWith('/admin/users')) return route.fulfill({ json: envelope({ items: issued ? [{
+      id: user.id, email: teacherEmail, displayName: '新老师', status: 'PENDING_ACTIVATION', roles: ['TEACHER'], deliveryStatus: 'SENT',
+    }] : [] }) });
+    return route.fulfill({ json: envelope(path.endsWith('/auth/me') ? user : {}) });
+  });
+  await page.goto('/login');
+  await expect(page.getByLabel('登录身份')).toHaveCount(0);
+  await page.getByLabel('邮箱', { exact: true }).fill(email);
+  await page.getByLabel('密码', { exact: true }).fill('Study2026!');
+  await page.getByRole('button', { name: '登录学习空间' }).click();
+  await expect(page).toHaveURL(/\/admin$/);
+  await expect(page.getByRole('heading', { name: '平台管理' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '操作日志' })).toHaveCount(0);
+  await page.getByLabel('操作原因').fill('新增指导教师');
+  await page.getByLabel('老师姓名').fill('新老师');
+  await page.getByLabel('老师邮箱').fill(teacherEmail);
+  await page.getByRole('button', { name: '创建并发送邀请' }).click();
+  await expect(page.getByText(/teacher@example\.test.*PENDING_ACTIVATION/)).toBeVisible();
 });

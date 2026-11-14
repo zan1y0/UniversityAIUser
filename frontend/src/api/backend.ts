@@ -1,5 +1,5 @@
 import { execute, waitJob } from './contract';
-import { clearCsrf, ApiError, isRecord } from './client';
+import { clearCsrf, ApiError, isRecord, request } from './client';
 import type { User, School, Notice } from '../domain/types';
 
 export const backend = {
@@ -18,26 +18,22 @@ export const backend = {
       throw new ApiError('数字人回复暂不可用', 'INVALID_RESPONSE');
     return result.text;
   },
-  async login(loginName: string, password: string): Promise<User> {
-    const user = authUser(await execute('op083', { body: { loginName, password } }));
-    clearCsrf();
-    return user;
+  async login(email: string, password: string): Promise<User> {
+    return identity('/auth/login', { email, password });
   },
-  async register(loginName: string, password: string, displayName: string): Promise<User> {
-    const user = authUser(
-      await execute('op082', {
-        body: { loginName, password, displayName },
-      }),
-    );
-    clearCsrf();
-    return user;
+  async register(email: string, password: string, displayName: string, code: string,
+    confirmPassword: string, acceptedTerms: boolean): Promise<User> {
+    return identity('/auth/register', { email, password, displayName, code, confirmPassword, acceptedTerms });
+  },
+  async switchWorkspace(workspace: string): Promise<User> {
+    return identity('/auth/workspace', { workspace });
   },
   async logout() {
-    await execute('op085', {});
+    await request('/auth/logout', { method: 'POST' });
     clearCsrf();
   },
   async currentUser(): Promise<User> {
-    return authUser(await execute('op084', {}));
+    return authUser(await request('/auth/me'));
   },
   async chat(
     text: string,
@@ -130,5 +126,14 @@ export const backend = {
 function authUser(value: unknown): User {
   if (!isRecord(value) || typeof value.id !== 'string' || typeof value.displayName !== 'string')
     throw new ApiError('登录响应缺少账号信息', 'INVALID_RESPONSE');
-  return { id: value.id, nickname: value.displayName };
+  if (!['STUDENT', 'TEACHER', 'ADMIN'].includes(String(value.activeRole)) || !Array.isArray(value.roles) || !Array.isArray(value.permissions)
+      || !value.roles.every(v => typeof v === 'string') || !value.permissions.every(v => typeof v === 'string'))
+    throw new ApiError('登录响应缺少角色权限信息', 'INVALID_RESPONSE');
+  return { id: value.id, nickname: value.displayName, email: typeof value.email === 'string' ? value.email : undefined, activeRole: value.activeRole as User['activeRole'], roles: value.roles, permissions: value.permissions };
+}
+
+async function identity(path: string, body: object): Promise<User> {
+  const user = authUser(await request(path, { method: 'POST', body }));
+  clearCsrf();
+  return user;
 }

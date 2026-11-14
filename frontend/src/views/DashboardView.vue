@@ -7,7 +7,6 @@ import { backend } from '../api/backend';
 import { useLoad } from '../composables/useLoad';
 import AppIcon from '../components/AppIcon.vue';
 import ChartPanel from '../components/ChartPanel.vue';
-import AvatarGuide from '../components/AvatarGuide.vue';
 import AsyncState from '../components/AsyncState.vue';
 const app = useAppStore();
 const study = useStudyStore();
@@ -207,19 +206,6 @@ onMounted(load);
         </section>
       </div>
       <div class="stack">
-        <section class="card">
-          <div class="card-heading">
-            <h2>你的陪伴伙伴</h2>
-            <span class="tag green">今天也在</span>
-          </div>
-          <AvatarGuide compact />
-          <p class="muted small space-top">
-            “先把注意力放到眼前的一道题上，进步就在每一次认真里。”
-          </p>
-          <RouterLink to="/companion" class="btn secondary stretch space-top"
-            >和研小途聊一聊<AppIcon name="arrow" :size="15"
-          /></RouterLink>
-        </section>
         <section class="card">
           <div class="card-heading">
             <h2>知识掌握概览</h2>

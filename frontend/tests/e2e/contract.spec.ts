@@ -36,6 +36,7 @@ async function mockContract(
     emptyDashboard?: boolean;
     conflict?: boolean;
     authenticated?: boolean;
+    schoolFixtures?: Record<string, unknown>;
   } = {},
 ) {
   const fixtures = structuredClone(fixtureData) as unknown as Record<
@@ -180,7 +181,14 @@ async function mockContract(
     }
     if (id === 'op061') fixtures.op059 = { ...fixtures.op059, status: 'submitted' };
     if (id === 'op042') fixtures.op042 = { ...fixtures.op041, status: 'cancelled', version: 3 };
-    let data: unknown = fixtures[id];
+    let data: unknown = options.schoolFixtures?.[id] ?? fixtures[id];
+    if (
+      id === 'op020' &&
+      body.estimatedScore === undefined &&
+      isRecord(data) &&
+      Array.isArray(data.items)
+    )
+      data = { items: data.items.map((item) => ({ ...item, matchScore: null })) };
     if (jobKinds[id]) {
       lastKind = jobKinds[id]!;
       if (lastKind === 'studyFeedback') results.studyFeedback!.taskType = body.type;
@@ -229,7 +237,7 @@ async function login(page: Page) {
     sessionStorage.clear();
   });
   await page.reload();
-  await page.getByLabel('账号', { exact: true }).fill('student');
+  await page.getByLabel('邮箱', { exact: true }).fill('student@example.test');
   await page.getByLabel('密码', { exact: true }).fill('12345678');
   await page.getByRole('button', { name: '登录学习空间', exact: true }).click();
   await expect(page).toHaveURL(/dashboard/);
@@ -264,6 +272,10 @@ test('真实登录协议与11个模块的正式页面均能显示', async ({ pag
     await expect(page.locator('.contract-workspace')).toBeVisible();
     await expect(page.locator('.contract-nav .chip').first()).toBeVisible();
     await expect(page.getByText('正在载入你的学习资料…', { exact: true })).toHaveCount(0);
+    if (!['/companion', '/schools', '/dashboard'].includes(path)) {
+      await expect(page.getByRole('region', { name: '学习内容与结果' })).toHaveCount(0);
+      await expect(page.getByRole('region', { name: '操作结果' })).toHaveCount(0);
+    }
     const width = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth,
     );
@@ -273,10 +285,117 @@ test('真实登录协议与11个模块的正式页面均能显示', async ({ pag
   expect(errors).toEqual([]);
   expect(mock.violations).toEqual([]);
   expect(mock.seen.find((s) => s.id === 'op083')?.body).toEqual({
-    loginName: 'student',
+    email: 'student@example.test',
     password: '12345678',
   });
 });
+test('院校筛选提交后在下方展示表格，不再显示通用结果卡片', async ({ page }) => {
+  const mock = await mockContract(page);
+  await login(page);
+  await page.goto('/schools');
+  const search = page.getByRole('region', { name: '院校专业筛选' });
+  const result = page.getByRole('region', { name: '院校专业查询结果' });
+  await expect(result).toHaveCount(0);
+  await expect(page.getByRole('region', { name: '学习内容与结果' })).toHaveCount(0);
+  await search.getByLabel('招生年份').fill('2027');
+  await search.getByLabel('专业名称').fill('软件工程');
+  await search.getByLabel('地区').fill('上海');
+  await search.getByLabel('参考总分').fill('350');
+  const query = page.waitForRequest(
+    (r) => new URL(r.url()).searchParams.get('major') === '软件工程',
+  );
+  await search.getByRole('button', { name: '查询', exact: true }).click();
+  const params = new URL((await query).url()).searchParams;
+  expect(Object.fromEntries(params)).toMatchObject({
+    year: '2027',
+    region: '上海',
+    score: '350',
+    page: '1',
+  });
+  await expect(result.getByRole('rowheader', { name: /联调示例院校/ })).toBeVisible();
+  await expect(result.getByText('暂无数据')).toBeVisible();
+  expect(mock.violations).toEqual([]);
+});
+
+test('五个择校板块按条件提交并在表单下方显示各自的结果', async ({ page }) => {
+  const first = fixtureData.op019.items[0]!;
+  const second = { ...first, id: uid(712), schoolName: '对比测试院校', scoreLine: null };
+  const metric = { type: 'scoreLine', year: 2027, value: 330, unit: 'points', sources: [] };
+  const facts = { program: first, metrics: [metric], missingFields: [] };
+  const mock = await mockContract(page, {
+    schoolFixtures: {
+      op019: { items: [first, second], page: 1, pageSize: 100, total: 2 },
+      op020: { items: [{ program: first, matchScore: 72, reasons: ['测试匹配'], risks: [] }] },
+      op021: facts,
+      op022: {
+        year: 2027,
+        programs: [facts, { ...facts, program: second, metrics: [{ ...metric, value: null }] }],
+      },
+      op024: { ...fixtureJobs.schoolEvaluation, programId: first.id },
+    },
+  });
+  await login(page);
+  await page.goto('/schools');
+  const results = page.getByRole('region', { name: '择校查询结果' });
+  async function open(title: string) {
+    await action(page, title).click();
+    const filters = page.getByRole('region', { name: title, exact: true });
+    await expect(results).toHaveCount(0);
+    await expect(page.getByRole('region', { name: '学习内容与结果' })).toHaveCount(0);
+    return filters;
+  }
+  let filters = await open('寻找适合我的院校');
+  await filters.getByLabel('招生年份').fill('2027');
+  await filters.getByLabel('本科专业').fill('软件工程');
+  await filters.getByLabel('意向地区').fill('上海、江苏');
+  await filters.getByLabel('参考总分').fill('350');
+  await filters.getByRole('button', { name: '查询', exact: true }).click();
+  await expect(results.getByText('72 / 100')).toBeVisible();
+  expect(mock.seen.find((entry) => entry.id === 'op020')?.body.regions).toEqual(['上海', '江苏']);
+  await filters.getByLabel('意向地区').clear();
+  await filters.getByLabel('参考总分').clear();
+  await filters.getByRole('button', { name: '查询', exact: true }).click();
+  await expect(results.getByText('未计算', { exact: true })).toBeVisible();
+  expect(mock.seen.filter((entry) => entry.id === 'op020').at(-1)?.body).toEqual({
+    undergraduateMajor: '软件工程',
+    year: 2027,
+    difficulty: 'medium',
+  });
+
+  filters = await open('查询院校历史指标');
+  await filters.getByLabel('招生年份').fill('2027');
+  const historicalProgram = filters.getByRole('combobox', { name: '院校专业', exact: true });
+  await expect(historicalProgram.getByRole('option', { name: /对比测试院校/ })).toHaveCount(1);
+  await filters.getByRole('textbox', { name: '搜索院校专业' }).fill('联调示例');
+  await expect(historicalProgram.getByRole('option', { name: /对比测试院校/ })).toHaveCount(0);
+  await historicalProgram.selectOption(first.id);
+  await filters.getByRole('combobox', { name: '历史指标' }).selectOption('scoreLine');
+  await filters.getByRole('button', { name: '查询', exact: true }).click();
+  await expect(results.getByText('330 分', { exact: true })).toBeVisible();
+
+  filters = await open('对比目标院校');
+  await filters.getByLabel('招生年份').fill('2027');
+  await filters.getByRole('combobox', { name: '院校专业 1', exact: true }).selectOption(first.id);
+  await filters.getByRole('combobox', { name: '院校专业 2', exact: true }).selectOption(second.id);
+  await filters.getByRole('button', { name: '对比', exact: true }).click();
+  await expect(results.getByRole('rowheader', { name: /对比测试院校/ })).toBeVisible();
+  await expect(results.getByText('暂无数据', { exact: true })).toBeVisible();
+
+  filters = await open('分析上岸概率与风险');
+  await filters.getByLabel('招生年份').fill('2027');
+  await filters.getByRole('combobox', { name: '院校专业', exact: true }).selectOption(first.id);
+  await filters.getByLabel('参考总分').fill('350');
+  await filters.getByRole('button', { name: '开始评估' }).click();
+  await expect(results.getByText('暂无可用数据', { exact: true })).toBeVisible();
+  await expect(results.getByText('参考总分 350 分，2027 年该专业复试线 330 分。')).toBeVisible();
+
+  filters = await open('获取本人择校评估');
+  await expect(filters.getByLabel('评估编号')).toHaveValue(fixtureJobs.schoolEvaluation.id);
+  await filters.getByRole('button', { name: '查询', exact: true }).click();
+  await expect(results.getByText('暂无可用数据', { exact: true })).toBeVisible();
+  expect(mock.violations).toEqual([]);
+});
+
 test('多轮追问递增上下文版本，展示思路而非最终答案', async ({ page }) => {
   const mock = await mockContract(page);
   await login(page);
@@ -299,7 +418,6 @@ test('生成后确认学习计划，版本与幂等键遵循契约', async ({ pa
   const mock = await mockContract(page);
   await login(page);
   await page.goto('/planning');
-  await expect(page.getByRole('status').filter({ hasText: /^已完成$/ })).toBeVisible();
   await action(page, '生成候选学习计划').click();
   await submit(page, '生成候选学习计划').click();
   await expect(page.getByText('候选计划', { exact: true })).toBeVisible();
@@ -314,7 +432,6 @@ test('练习先展示无答案试题，提交后才展示解析', async ({ page 
   const mock = await mockContract(page);
   await login(page);
   await page.goto('/practice');
-  await expect(page.getByRole('status').filter({ hasText: /^已完成$/ })).toBeVisible();
   await action(page, '开始练习').click();
   await submit(page, '开始练习').click();
   await expect(
@@ -331,6 +448,8 @@ test('模考自动保存、刷新恢复、交卷评分与答案保护', async ({
   const mock = await mockContract(page);
   await login(page);
   await page.goto('/exams');
+  const paperQuery = page.locator('.contract-nav .chip').first();
+  await submit(page, (await paperQuery.innerText()).trim()).click();
   await expect(page.getByRole('status').filter({ hasText: /^已完成$/ })).toBeVisible();
   await action(page, '开始限时模考').click();
   await submit(page, '开始限时模考').click();
@@ -355,7 +474,6 @@ test('服务错误不会回退演示，重试保持同一请求与幂等键', as
   const mock = await mockContract(page, { conflict: true });
   await login(page);
   await page.goto('/planning');
-  await expect(page.getByRole('status').filter({ hasText: /^已完成$/ })).toBeVisible();
   await action(page, '生成候选学习计划').click();
   await submit(page, '生成候选学习计划').click();
   await expect(page.getByRole('alert')).toContainText('服务暂不可用');
@@ -431,7 +549,10 @@ test('英语作文辅导与复试训练使用各自结构化任务', async ({ pa
   const mock = await mockContract(page);
   await login(page);
   await page.goto('/public-courses');
+  await expect(page.getByRole('region', { name: '操作结果' })).toHaveCount(0);
+  await submit(page, '查看公共课知识体系').click();
   await expect(page.getByRole('status').filter({ hasText: /^已完成$/ })).toBeVisible();
+  await expect(page.getByRole('region', { name: '操作结果' })).toBeVisible();
   await action(page, '英语专项辅导').click();
   await page.getByLabel('训练类型', { exact: false }).selectOption('composition');
   await page

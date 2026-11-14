@@ -1,16 +1,16 @@
 {
-  "version": "1.1.0",
-  "paths": 80,
-  "operations": 86,
-  "schemas": 222,
-  "examplesValidated": 1396,
+  "version": "1.5.0",
+  "paths": 125,
+  "operations": 138,
+  "schemas": 323,
+  "examplesValidated": 1422,
   "negativeCases": 5,
   "businessModules": 11,
-  "sha256": "288bb94f17724c63ab71eb2cca3820d55b9532ce239021040766199b00775189",
+  "sha256": "affdb34a3f39e2d43c7f340f804586196215e1b1ba6716163d02e21fb24366fb",
   "status": "contract_validated_routes_matched",
   "moduleOperations": {
     "00 通用技术接口": 15,
-    "M01 AI数字人陪伴督学": 8,
+    "M01 AI数字人陪伴督学": 12,
     "M02 智能择校与专业分析": 6,
     "M03 公共课智能辅导": 6,
     "M04 专业课学习支持": 6,
@@ -20,7 +20,10 @@
     "M08 模考与估分系统": 8,
     "M09 复试AI训练": 6,
     "M10 学习数据仪表盘": 4,
-    "M11 资讯与政策提醒": 7
+    "M11 资讯与政策提醒": 7,
+    "T01 教学与指导": 23,
+    "AUTH": 7,
+    "ADMIN": 18
   },
   "note": "路由一致和文档校验不代表所有业务、外部模型及 MySQL 已通过真实联调。"
 }

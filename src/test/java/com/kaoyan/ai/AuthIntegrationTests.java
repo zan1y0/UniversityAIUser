@@ -33,20 +33,18 @@ import org.springframework.test.web.servlet.*;
     "app.jwt.secret=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
     "app.seed-local=false"})
 @AutoConfigureMockMvc
-@org.springframework.test.context.TestExecutionListeners(
-    listeners = {org.springframework.test.context.support.DependencyInjectionTestExecutionListener.class,
-        org.springframework.test.context.web.ServletTestExecutionListener.class},
-    mergeMode = org.springframework.test.context.TestExecutionListeners.MergeMode.REPLACE_DEFAULTS)
 class AuthIntegrationTests {
   @Autowired MockMvc mvc;
-  @Autowired UserAccountRepository accounts;
+  @Autowired com.kaoyan.ai.persistence.mapper.IdentityMapper accounts;
+  @Autowired com.kaoyan.ai.service.auth.EmailVerificationService codes;
+  @org.springframework.boot.test.mock.mockito.MockBean com.kaoyan.ai.service.auth.AccountMail mail;
   @Autowired JdbcTemplate jdbc;
   @Autowired com.kaoyan.ai.api.contract.ContractRegistry contract;
   @Autowired
   @org.springframework.beans.factory.annotation.Qualifier("requestMappingHandlerMapping")
   org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping mappings;
   private static final String PASSWORD = "Study2026!";
-  private final String name = "u_" + UUID.randomUUID().toString().replace("-", "").substring(0, 20);
+  private final String name = "u_" + UUID.randomUUID().toString().replace("-", "").substring(0, 20) + "@example.test";
   private final String ip = UUID.randomUUID().toString();
   private MockHttpSession session;
   private String csrf;
@@ -73,9 +71,20 @@ class AuthIntegrationTests {
     }
     return result;
   }
+  private com.fasterxml.jackson.databind.node.ObjectNode registration(String nickname) {
+    org.mockito.Mockito.clearInvocations(mail);
+    codes.send(com.kaoyan.ai.service.auth.EmailVerificationService.Purpose.REGISTER, name, "");
+    var message = org.mockito.ArgumentCaptor.forClass(String.class);
+    org.mockito.Mockito.verify(mail).send(org.mockito.ArgumentMatchers.eq(name), org.mockito.ArgumentMatchers.anyString(), message.capture());
+    String code = java.util.regex.Pattern.compile("[0-9]{6}").matcher(message.getValue()).results()
+        .findFirst().orElseThrow().group();
+    return obj("email", name, "password", PASSWORD, "confirmPassword", PASSWORD, "displayName", nickname,
+        "acceptedTerms", true, "code", code);
+  }
+
   private void register() throws Exception {
     csrf();
-    var result = write("register", obj("loginName", name, "password", PASSWORD, "displayName", "萤火同学"), 201);
+    var result = write("register", registration("萤火同学"), 201);
     cookie = result.getResponse().getCookie(JwtService.COOKIE);
     assertNotNull(cookie);
     assertTrue(cookie.isHttpOnly());
@@ -88,7 +97,7 @@ class AuthIntegrationTests {
 
   @Test void registerPersistRestoreAndLogoutRevokesJwt() throws Exception {
     register();
-    var account = accounts.findByLoginName(name).orElseThrow();
+    var account = accounts.byEmail(name);
     assertNotEquals(PASSWORD, account.passwordHash());
     assertTrue(new BCryptPasswordEncoder().matches(PASSWORD, account.passwordHash()));
     mvc.perform(get("/api/v1/auth/me").cookie(cookie)).andExpect(status().isOk())
@@ -103,9 +112,11 @@ class AuthIntegrationTests {
 
   @Test void loginAfterRegistrationAndDuplicateName() throws Exception {
     register();
-    write("register", obj("loginName", name.toUpperCase(), "password", PASSWORD, "displayName", "重复"), 409);
-    write("login", obj("loginName", name, "password", "wrongPass123"), 401);
-    var result = write("login", obj("loginName", name.toUpperCase(), "password", PASSWORD), 200);
+    var duplicate = registration("重复");
+    duplicate.put("email", name.toUpperCase());
+    write("register", duplicate, 409);
+    write("login", obj("email", name, "password", "wrongPass123"), 401);
+    var result = write("login", obj("email", name.toUpperCase(), "password", PASSWORD), 200);
     Cookie latest = result.getResponse().getCookie(JwtService.COOKIE);
     mvc.perform(get("/api/v1/auth/me").cookie(latest)).andExpect(status().isOk());
     mvc.perform(get("/api/v1/auth/me").cookie(cookie)).andExpect(status().isUnauthorized());
@@ -113,7 +124,7 @@ class AuthIntegrationTests {
 
   @Test void rejectsMissingCsrfAndUntrustedOrigins() throws Exception {
     csrf();
-    var body = obj("loginName", name, "password", PASSWORD, "displayName", "测试").toString();
+    var body = obj("email", name, "password", PASSWORD, "displayName", "测试").toString();
     mvc.perform(post("/api/v1/auth/register").session(session).contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isForbidden());
     mvc.perform(post("/api/v1/auth/register").session(session).header("X-CSRF-Token", csrf)
@@ -124,12 +135,12 @@ class AuthIntegrationTests {
   @Test void rejectsInjectionAndPersistsNicknameAsData() throws Exception {
     csrf();
     String injection = "x' OR 1=1 --";
-    write("register", obj("loginName", injection, "password", PASSWORD, "displayName", "同学"), 422);
-    write("login", obj("loginName", injection, "password", PASSWORD), 422);
-    assertTrue(accounts.findByLoginName(injection).isEmpty());
+    write("register", obj("email", injection, "password", PASSWORD, "displayName", "同学"), 422);
+    write("login", obj("email", injection, "password", PASSWORD), 422);
+    assertNull(accounts.byEmail(injection));
     String payload = "'); DROP TABLE app_users; --";
-    write("register", obj("loginName", name, "password", PASSWORD, "displayName", payload), 201);
-    assertEquals(payload, accounts.findByLoginName(name).orElseThrow().displayName());
+    write("register", registration(payload), 201);
+    assertEquals(payload, accounts.byEmail(name).displayName());
     assertTrue(jdbc.queryForObject("SELECT COUNT(*) FROM app_users", Integer.class) > 0);
   }
 
@@ -140,23 +151,24 @@ class AuthIntegrationTests {
     String altered = parts[0] + "." + parts[1] + "." + (parts[2].charAt(0) == 'A' ? "B" : "A") + parts[2].substring(1);
     for (String invalid : new String[] {altered, "eyJhbGciOiJub25lIn0.e30.", "invalid"})
       mvc.perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + invalid)).andExpect(status().isUnauthorized());
-    jdbc.update("UPDATE auth_tokens SET expires_at=? WHERE user_id=?", Timestamp.from(Instant.now().minusSeconds(1)), accounts.findByLoginName(name).orElseThrow().id());
+    jdbc.update("UPDATE auth_tokens SET expires_at=? WHERE user_id=?", Timestamp.from(Instant.now().minusSeconds(1)), accounts.byEmail(name).id());
     mvc.perform(get("/api/v1/auth/me").cookie(cookie)).andExpect(status().isUnauthorized());
   }
 
   @Test void rejectsWeakPasswordsAndWrongTypes() throws Exception {
     csrf();
     for (String password : new String[] {"short", "onlyletters", "1234567890", "a1".repeat(37)})
-      write("register", obj("loginName", name, "password", password, "displayName", "同学"), 422);
-    write("register", obj("loginName", name, "password", 12345678, "displayName", "同学"), 422);
-    assertTrue(accounts.findByLoginName(name).isEmpty());
+      write("register", obj("email", name, "password", password, "confirmPassword", password,
+          "displayName", "同学", "acceptedTerms", true, "code", "012345"), 422);
+    write("register", obj("email", name, "password", 12345678, "displayName", "同学"), 422);
+    assertNull(accounts.byEmail(name));
   }
 
   @Test void limitsAttemptsAcrossNewSessions() throws Exception {
     for (int i = 0; i < 11; i++) {
       session = null;
       csrf();
-      write("login", obj("loginName", name, "password", "wrongPass123"), i < 10 ? 401 : 429);
+      write("login", obj("email", name, "password", "wrongPass123"), i < 10 ? 401 : 429);
     }
   }
 
@@ -183,8 +195,8 @@ class AuthIntegrationTests {
 
   @Test void rejectsUnknownAuthFields() throws Exception {
     csrf();
-    write("register", obj("loginName", name, "password", PASSWORD, "displayName", "同学", "userId", name), 422);
-    assertTrue(accounts.findByLoginName(name).isEmpty());
+    write("register", obj("email", name, "password", PASSWORD, "displayName", "同学", "userId", name), 422);
+    assertNull(accounts.byEmail(name));
   }
 
   @Test void jwtChatAttachmentMatchesContractAndCanBeDownloaded() throws Exception {

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kaoyan.ai.persistence.mapper.IdentityMapper">
+  <resultMap id="account" type="com.kaoyan.ai.persistence.entity.EmailAccount">
+    <constructor>
+      <idArg column="id" javaType="java.lang.String"/>
+      <arg column="email" javaType="java.lang.String"/>
+      <arg column="display_name" javaType="java.lang.String"/>
+      <arg column="password_hash" javaType="java.lang.String"/>
+      <arg column="account_status" javaType="java.lang.String"/>
+      <arg column="email_verified_at" javaType="java.time.Instant"/>
+      <arg column="auth_version" javaType="_long"/>
+    </constructor>
+  </resultMap>
+  <select id="byEmail" resultMap="account">SELECT * FROM app_users WHERE email=#{email}</select>
+  <select id="byId" resultMap="account">SELECT * FROM app_users WHERE id=#{id}</select>
+  <select id="lockUser" resultMap="account">SELECT * FROM app_users WHERE id=#{id} FOR UPDATE</select>
+  <select id="legacyTeacherHash" resultType="string">SELECT password_hash FROM teacher_accounts WHERE user_id=#{id}</select>
+  <update id="markDevelopmentAccount">
+    UPDATE app_users SET email=#{email}, email_verified_at=CURRENT_TIMESTAMP, account_status='ENABLED'
+    WHERE id=#{id} AND email IS NULL
+  </update>
+  <select id="lock" resultType="int">SELECT lock_id FROM identity_locks WHERE lock_id=#{id} FOR UPDATE</select>
+  <insert id="insertAccount">
+    INSERT INTO app_users(id,login_name,email,display_name,password_hash,account_status,email_verified_at,terms_accepted_at)
+    VALUES(#{id},CONCAT('email:',#{id}),#{email},#{name},#{hash},#{status},
+      CASE WHEN #{verified} THEN CURRENT_TIMESTAMP ELSE NULL END,
+      CASE WHEN #{terms} THEN CURRENT_TIMESTAMP ELSE NULL END)
+  </insert>
+  <update id="activate">
+    UPDATE app_users SET email=#{email},password_hash=#{hash},account_status='ENABLED',
+      email_verified_at=CURRENT_TIMESTAMP,auth_version=auth_version+1 WHERE id=#{id} AND account_status='PENDING_ACTIVATION'
+  </update>
+  <update id="changeEmail">UPDATE app_users SET email=#{email},email_verified_at=CURRENT_TIMESTAMP,auth_version=auth_version+1 WHERE id=#{id}</update>
+  <update id="changePassword">UPDATE app_users SET password_hash=#{hash},auth_version=auth_version+1 WHERE id=#{id}</update>
+  <update id="changeStatus">UPDATE app_users SET account_status=#{status},auth_version=auth_version+1 WHERE id=#{id}</update>
+  <update id="renameUser">UPDATE app_users SET display_name=#{name} WHERE id=#{id}</update>
+  <update id="bumpVersion">UPDATE app_users SET auth_version=auth_version+1 WHERE id=#{id}</update>
+  <delete id="revokeTokens">DELETE FROM auth_tokens WHERE user_id=#{id}</delete>
+  <select id="bootstrap" resultType="string">SELECT user_id FROM admin_bootstrap WHERE slot=1</select>
+  <select id="bootstrapCompleted" resultType="boolean">SELECT CASE WHEN completed_at IS NULL THEN FALSE ELSE TRUE END FROM admin_bootstrap WHERE slot=1</select>
+  <update id="reserveBootstrap">UPDATE admin_bootstrap SET user_id=#{id} WHERE slot=1 AND user_id IS NULL</update>
+  <update id="completeBootstrap">UPDATE admin_bootstrap SET user_id=#{id},completed_at=CURRENT_TIMESTAMP WHERE slot=1</update>
+  <select id="users" resultType="map">
+    SELECT u.id AS "id",u.email AS "email",u.display_name AS "displayName",u.account_status AS "status",
+      i.delivery_status AS "deliveryStatus", CASE WHEN u.email_verified_at IS NULL THEN FALSE ELSE TRUE END AS "verified"
+    FROM app_users u LEFT JOIN account_invitations i ON i.user_id=u.id
+    WHERE (#{email}='' OR INSTR(u.email,#{email}) &gt; 0)
+      AND (#{role}='' OR EXISTS (SELECT 1 FROM sys_user_roles r WHERE r.user_id=u.id AND r.role_code=#{role}))
+    ORDER BY u.id LIMIT 50 OFFSET #{offset}
+  </select>
+  <select id="legacyUsers" resultType="map">
+    SELECT u.id AS "id",u.login_name AS "legacyLogin",t.login_name AS "teacherLogin",
+      u.display_name AS "displayName", i.email AS "email", i.delivery_status AS "deliveryStatus",
+      u.account_status AS "status" FROM app_users u
+    LEFT JOIN teacher_accounts t ON t.user_id=u.id
+    LEFT JOIN account_invitations i ON i.user_id=u.id
+    WHERE u.email IS NULL ORDER BY u.id
+  </select>
+  <select id="roleCatalog" resultType="map">SELECT role_code AS "code",role_name AS "name" FROM sys_roles ORDER BY role_code</select>
+  <select id="permissionCatalog" resultType="map">SELECT permission_code AS "code",permission_name AS "name" FROM sys_permissions ORDER BY permission_code</select>
+  <update id="renameRole">UPDATE sys_roles SET role_name=#{name} WHERE role_code=#{role}</update>
+  <delete id="clearPermissions">DELETE FROM sys_role_permissions WHERE role_code=#{role}</delete>
+  <insert id="addPermission">INSERT INTO sys_role_permissions VALUES(#{role},#{permission})</insert>
+  <select id="effectiveAdmins" resultType="int">
+    SELECT COUNT(*) FROM app_users u JOIN sys_user_roles r ON r.user_id=u.id AND r.role_code='ADMIN'
+    WHERE u.account_status='ENABLED' AND u.email_verified_at IS NOT NULL
+      AND (SELECT COUNT(*) FROM sys_role_permissions p WHERE p.role_code='ADMIN'
+        AND p.permission_code IN ('role:assign','permission:assign','user:enable'))=3
+  </select>
+  <sql id="invitationColumns">user_id AS "userId",email AS "email",purpose AS "purpose",
+    token_digest AS "digest",expires_at AS "expiresAt",delivery_status AS "status"</sql>
+  <select id="invitationByUser" resultType="map">SELECT <include refid="invitationColumns"/> FROM account_invitations WHERE user_id=#{id}</select>
+  <select id="invitationOwner" resultType="string">SELECT user_id FROM account_invitations WHERE email=#{email}</select>
+  <select id="invitationByToken" resultType="map">SELECT <include refid="invitationColumns"/> FROM account_invitations WHERE token_digest=#{digest}</select>
+  <select id="lockInvitationByToken" resultType="map">SELECT <include refid="invitationColumns"/> FROM account_invitations WHERE token_digest=#{digest} FOR UPDATE</select>
+  <delete id="removeInvitation">DELETE FROM account_invitations WHERE user_id=#{id}</delete>
+  <insert id="addInvitation">
+    INSERT INTO account_invitations VALUES(#{id},#{email},#{digest},#{purpose},#{expires},'PENDING')
+  </insert>
+  <update id="delivery">UPDATE account_invitations SET delivery_status=#{status} WHERE token_digest=#{digest}</update>
+  <insert id="audit">
+    INSERT INTO security_audit(id,actor_id,action_code,target_id,before_value,after_value,reason,trace_id)
+    VALUES(#{id},#{actor},#{action},#{target},#{before},#{after},#{reason},#{trace})
+  </insert>
+  <select id="auditList" resultType="map">
+    SELECT id AS "id",actor_id AS "actorId",action_code AS "action",target_id AS "target",
+      before_value AS "before",after_value AS "after",reason AS "reason",trace_id AS "traceId",occurred_at AS "occurredAt"
+    FROM security_audit ORDER BY occurred_at DESC,id DESC LIMIT 50 OFFSET #{offset}
+  </select>
+  <select id="setting" resultType="string">SELECT setting_value FROM managed_settings WHERE setting_key=#{key}</select>
+  <update id="updateSetting">UPDATE managed_settings SET setting_value=#{value} WHERE setting_key=#{key}</update>
+</mapper>

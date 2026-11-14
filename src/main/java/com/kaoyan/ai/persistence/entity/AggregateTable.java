@@ -8,6 +8,7 @@ public record AggregateTable(String name) {
           "profiles",
           "avatar_preferences",
           "reminder_preferences",
+          "study_supervision",
           "checkins",
           "programs",
           "knowledge_trees",

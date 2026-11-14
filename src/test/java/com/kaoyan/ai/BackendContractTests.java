@@ -62,6 +62,7 @@ class BackendContractTests {
   static final ArrayNode LOG = arr();
 
   private static class Client {
+    final String source = java.util.UUID.randomUUID().toString();
     MockHttpSession session;
     String csrf;
     String login;
@@ -76,10 +77,10 @@ class BackendContractTests {
             c,
             "POST",
             "/session/login",
-            obj("loginName", name, "password", "LocalStudy2026!"),
+            obj("email", name + "@example.test", "password", "LocalStudy2026!"),
             null,
             200);
-    assertEquals(name, user.path("loginName").asText());
+    assertEquals(name + "@example.test", user.path("email").asText());
     call(c, "GET", "/session/csrf", null, null, 200);
     return c;
   }
@@ -94,6 +95,7 @@ class BackendContractTests {
       throws Exception {
     MockHttpServletRequestBuilder b =
         request(HttpMethod.valueOf(method), java.net.URI.create(PREFIX + path));
+    b.with(request -> { request.setRemoteAddr(c.source); return request; });
     if (c.session != null) b.session(c.session);
     if (csrf && c.csrf != null) b.header("X-CSRF-Token", c.csrf);
     if (key != null) b.header("Idempotency-Key", key);
@@ -198,7 +200,7 @@ class BackendContractTests {
         c,
         "POST",
         "/session/login",
-        obj("loginName", "student", "password", "LocalStudy2026!"),
+        obj("email", "student@example.test", "password", "LocalStudy2026!"),
         null,
         403,
         false);
@@ -206,7 +208,7 @@ class BackendContractTests {
         c,
         "POST",
         "/session/login",
-        obj("loginName", "student", "password", "wrongpassword"),
+        obj("email", "student@example.test", "password", "wrongpassword"),
         null,
         401);
     String token = c.csrf;
@@ -214,7 +216,7 @@ class BackendContractTests {
         c,
         "POST",
         "/session/login",
-        obj("loginName", "student", "password", "LocalStudy2026!"),
+        obj("email", "student@example.test", "password", "LocalStudy2026!"),
         null,
         200);
     call(c, "POST", "/session/logout", null, null, 403);
@@ -293,12 +295,45 @@ class BackendContractTests {
   }
 
   @Test
+  void importedCatalogReturnsFirstPageAndPreservesOriginalDirectory() throws Exception {
+    Client c = login("student");
+    JsonNode page = call(c, "GET", "/schools/programs?year=2026&page=1", null, null, 200);
+    assertEquals(20, page.path("items").size());
+    assertTrue(page.path("total").asInt() > 20);
+    String id = "0a3837ea-dc47-5090-9562-7367fdeb1336";
+    JsonNode imported = call(c, "GET", "/schools/programs/" + id + "/facts?year=2026",
+        null, null, 200).path("program");
+    assertEquals("hard", imported.path("difficulty").asText());
+    assertFalse(imported.has("systemTier"));
+    JsonNode original = parse(verificationJdbc.queryForObject(
+        "SELECT original_payload FROM program_catalog_archive WHERE program_id = ?", String.class, id));
+    assertEquals("top", original.path("difficulty").asText());
+    assertEquals("T0", original.path("systemTier").asText());
+  }
+
+  @Test
   @Order(3)
   void catalogsSchoolsAndNoInventedProbability() throws Exception {
     Client c = login("student");
     JsonNode list =
         call(c, "GET", "/schools/programs?year=2027&page=1&pageSize=10", null, null, 200);
-    assertEquals(2, list.path("total").asInt());
+    assertEquals(10, list.path("total").asInt());
+    JsonNode official = call(c, "GET",
+        "/schools/programs?year=2026&region=%E6%B1%9F%E8%8B%8F&major=%E8%AE%A1%E7%AE%97%E6%9C%BA&score=350&pageSize=100",
+        null, null, 200);
+    JsonNode program = java.util.stream.StreamSupport.stream(official.path("items").spliterator(), false)
+        .filter(row -> row.path("id").asText().equals("75000000-0000-4000-8000-000000000011"))
+        .findFirst().orElseThrow();
+    assertEquals("东南大学", program.path("schoolName").asText());
+    assertEquals(344, program.path("scoreLine").asInt());
+    assertTrue(program.path("enrollment").isNull());
+    assertEquals("https://yzb.seu.edu.cn/2026/0928/c6674a584558/page.htm",
+        program.path("sources").get(0).path("url").asText());
+    JsonNode recommendations = call(c, "POST", "/schools/recommendations",
+        obj("undergraduateMajor", "计算机", "year", 2027, "difficulty", "medium"), null, 200);
+    assertTrue(java.util.stream.StreamSupport.stream(recommendations.path("items").spliterator(), false)
+        .anyMatch(row -> row.path("program").path("region").asText().equals("上海")));
+    recommendations.path("items").forEach(row -> assertTrue(row.path("matchScore").isNull()));
     call(
         c,
         "POST",

@@ -78,10 +78,17 @@ public class JwtService {
     } catch (JwtException | IllegalArgumentException e) { throw invalid(); }
   }
 
-  public void issue(String user, HttpServletResponse response) {
+  public void issue(String user, HttpServletResponse response) { issue(user, "STUDENT", response); }
+
+  public void issue(String user, String role, HttpServletResponse response) {
+    issue(user, role, 0, response);
+  }
+
+  public void issue(String user, String role, long version, HttpServletResponse response) {
     Instant now = Instant.now(), expires = now.plusSeconds(ttl);
     String jti = UUID.randomUUID().toString();
     JwtClaimsSet claims = JwtClaimsSet.builder().issuer(ISSUER).subject(user)
+        .claim("activeRole", role).claim("authVersion", version)
         .audience(List.of("university-ai-web")).issuedAt(now).expiresAt(expires).id(jti).build();
     String token = encoder.encode(JwtEncoderParameters.from(
         JwsHeader.with(MacAlgorithm.HS256).type("JWT").build(), claims)).getTokenValue();
@@ -92,6 +99,10 @@ public class JwtService {
 
   public void revoke(HttpServletRequest request, HttpServletResponse response) {
     revokeActive(request);
+    clear(response);
+  }
+
+  public void clear(HttpServletResponse response) {
     response.addHeader("Set-Cookie", cookie("", 0));
   }
 
