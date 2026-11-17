@@ -5,27 +5,34 @@ import static com.kaoyan.ai.common.Jsons.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.kaoyan.ai.common.ApiException;
+import com.kaoyan.ai.infrastructure.cache.AggregateChanged;
 import com.kaoyan.ai.persistence.entity.*;
 import com.kaoyan.ai.persistence.mapper.*;
 import java.util.*;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Repository;
 
 /** 聚合持久化适配层：保留既有 JSON、归属约束、乐观锁和事务语义。 */
 @Repository
 public class RecordRepository {
   public static final Set<String> TABLES = AggregateTable.NAMES;
+  private static final String PUBLIC = "public";
   private final AggregateMapper mapper;
   private final UserAccountMapper users;
+  private final ApplicationEventPublisher events;
 
-  public RecordRepository(AggregateMapper mapper, UserAccountMapper users) {
+  public RecordRepository(
+      AggregateMapper mapper, UserAccountMapper users, ApplicationEventPublisher events) {
     this.mapper = mapper;
     this.users = users;
+    this.events = events;
   }
 
   public void create(String table, String id, String owner, JsonNode payload) {
     mapper.insert(
         new AggregateTable(table),
         new AggregateRecord(id, owner, payload.path("version").asInt(1), payload.toString()));
+    publishChanged(table, id, owner);
   }
 
   public ObjectNode get(String table, String id, String owner) {
@@ -63,6 +70,7 @@ public class RecordRepository {
                 id, owner, data.path("version").asInt(expected + 1), data.toString()),
             expected);
     if (changed != 1) throw new ApiException(409, "VERSION_CONFLICT", "资源已被更新，请刷新");
+    publishChanged(table, id, owner);
   }
 
   public void replace(String table, String id, String owner, ObjectNode data) {
@@ -71,6 +79,12 @@ public class RecordRepository {
 
   public void delete(String table, String id, String owner) {
     if (mapper.delete(new AggregateTable(table), id, owner) != 1) throw ApiException.missing();
+    publishChanged(table, id, owner);
+  }
+
+  /** 只有公开数据进缓存，用户维度数据不做预热也不发失效事件。 */
+  private void publishChanged(String table, String id, String owner) {
+    if (PUBLIC.equals(owner)) events.publishEvent(new AggregateChanged(table, id, owner));
   }
 
   public void lockOwner(String user) {

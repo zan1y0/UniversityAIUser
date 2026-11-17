@@ -2,7 +2,7 @@ spring:
   config:
     # 本机邮件账号：已被 .gitignore 忽略，授权码不进仓库，也不进 IDEA 运行配置。
     # 文件缺失或留空时只是不注册 JavaMailSender，业务仍可启动。
-    import: optional:file:./.local-data/mail-local.properties
+    import: optional:file:./.local-data/mail-local.properties,optional:file:./.local-data/cache-local.properties,optional:file:./.local-data/mq-local.properties
   mail:
     host: ${APP_SMTP_HOST:}
     port: ${APP_SMTP_PORT:587}
@@ -22,6 +22,38 @@ spring:
     name: kaoyan-ai-server
   profiles:
     default: local
+  # Redis 只做读缓存；连不上时自动降级为直接查库，不影响启动与业务。
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      database: ${REDIS_DATABASE:0}
+      timeout: ${REDIS_TIMEOUT:800ms}
+      connect-timeout: ${REDIS_CONNECT_TIMEOUT:800ms}
+  # RabbitMQ 只做“唤醒 + 广播”：jobs 表仍是任务状态与幂等的唯一事实来源，
+  # 因此 broker 挂掉不影响业务，只是退回数据库轮询。默认不连（app.mq.enabled=false）。
+  rabbitmq:
+    host: ${RABBITMQ_HOST:127.0.0.1}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    connection-timeout: ${RABBITMQ_CONNECT_TIMEOUT:3s}
+    listener:
+      simple:
+        # 由 MqStartupProbe 探活成功后再启动，broker 没起时不会每 5 秒刷一屏连接失败
+        auto-startup: false
+        # 消费线程数与 JobWorker 的执行线程数一致，避免一次拉太多任务排队
+        prefetch: ${RABBITMQ_PREFETCH:2}
+        acknowledge-mode: auto
+        # 重试耗尽后不要无限重回队列（会打满 CPU），交给队列的 x-dead-letter-exchange 进死信队列
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1s
+          multiplier: 2
+          max-interval: 5s
   servlet:
     multipart:
       max-file-size: 10MB
@@ -45,6 +77,30 @@ springdoc:
   swagger-ui:
     url: /contract/openapi.json
 app:
+  cache:
+    # 总开关，默认关闭：没装 Redis 的机器完全不访问 Redis，零开销。
+    # 需要缓存的机器设 APP_REDIS_CACHE_ENABLED=true，或在本机 .local-data/cache-local.properties 里打开。
+    redis-enabled: ${APP_REDIS_CACHE_ENABLED:false}
+    ttl-seconds: ${APP_REDIS_CACHE_TTL:1800}
+    # 启动后需要预热的公开只读聚合表（逗号分隔），告警类写操作不会碰这些表的缓存
+    warmup-tables: ${APP_REDIS_WARMUP_TABLES:programs,subjects,books,knowledge_trees,questions,papers,notices,milestones}
+  mq:
+    # 总开关，默认关闭：没装 RabbitMQ 的机器完全不建连接、不声明队列，任务仍按 500ms 轮询执行。
+    # 需要异步通信的机器设 APP_MQ_ENABLED=true，或在本机 .local-data/mq-local.properties 里打开。
+    enabled: ${APP_MQ_ENABLED:false}
+    job-exchange: ${APP_MQ_JOB_EXCHANGE:kaoyan.job.exchange}
+    job-queue: ${APP_MQ_JOB_QUEUE:kaoyan.job.queue}
+    job-routing-key: ${APP_MQ_JOB_ROUTING_KEY:job.queued}
+    dead-letter-exchange: ${APP_MQ_DLX:kaoyan.dlx}
+    dead-letter-queue: ${APP_MQ_DLQ:kaoyan.job.dlq}
+    dead-letter-routing-key: ${APP_MQ_DLQ_ROUTING_KEY:job.dead}
+    event-exchange: ${APP_MQ_EVENT_EXCHANGE:kaoyan.event.exchange}
+    event-queue: ${APP_MQ_EVENT_QUEUE:kaoyan.event.queue}
+    event-routing-key: ${APP_MQ_EVENT_ROUTING_KEY:event.broadcast}
+    # MQ 开启后轮询只做兜底，扫描间隔拉长到 30 秒
+    safety-scan-millis: ${APP_MQ_SAFETY_SCAN_MILLIS:30000}
+    # 启动时连不上 broker，之后每隔这么久重试一次（毫秒）
+    probe-interval-millis: ${APP_MQ_PROBE_INTERVAL_MILLIS:60000}
   account-mail:
     from: ${APP_MAIL_FROM:}
     code-secret: ${APP_EMAIL_CODE_SECRET:}

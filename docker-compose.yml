@@ -23,6 +23,22 @@ services:
     volumes:
       - redis-data:/data
 
+  # 可选：任务投递与事件广播用的 RabbitMQ。管理台 http://127.0.0.1:15672（guest/guest）。
+  # 后端默认不连（APP_MQ_ENABLED=false）；需要异步通信时把它设为 true。
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: kaoyan-ai-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+      TZ: Asia/Shanghai
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
 volumes:
   mysql-data:
   redis-data:
+  rabbitmq-data:

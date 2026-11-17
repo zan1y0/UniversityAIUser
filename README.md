@@ -83,7 +83,33 @@ AI_AUDIO_MODEL=<支持 /audio/transcriptions 的模型>
 
 mysql 配置不会注入 H2 本地种子账号或样例资料，目前新库的 `app_users` 为空，`student` 演示账号不能直接用于 MySQL 登录。账号和课程初始化属于后续业务配置，不自动迁移 H2 数据。
 
-持久化按聚合使用独立表，公共目录快照与用户资源通过 owner 隔离；聚合的子项保存在受契约约束的 JSON 文本中。版本列执行乐观锁，写业务通过事务和用户行锁串行化；幂等响应与业务修改在同一事务保存。保留既有聚合 JSON 存储格式，持久化改由 MyBatis Mapper 接口和 XML 执行；无需重建数据库或迁移已有数据。Mapper 实体位于 `entity`，SQL 位于 `src/main/resources/mapper/`。当前未接入 Redis、OSS。
+持久化按聚合使用独立表，公共目录快照与用户资源通过 owner 隔离；聚合的子项保存在受契约约束的 JSON 文本中。版本列执行乐观锁，写业务通过事务和用户行锁串行化；幂等响应与业务修改在同一事务保存。保留既有聚合 JSON 存储格式，持久化改由 MyBatis Mapper 接口和 XML 执行；无需重建数据库或迁移已有数据。Mapper 实体位于 `entity`，SQL 位于 `src/main/resources/mapper/`。Redis 只承担公共目录读缓存与启动预热，属于可选组件；OSS 尚未接入。
+
+## Redis 缓存预热（可选）
+
+Redis 不是运行必需组件：没装 Redis 时应用照常启动，预热直接跳过，读路径在 30 秒降级窗口内直查数据库，结果不变。
+
+- 开关与参数：`app.cache.redis-enabled`（默认 `false`，环境变量 `APP_REDIS_CACHE_ENABLED`）、`ttl-seconds`（`APP_REDIS_CACHE_TTL`，默认 1800）、`warmup-tables`（`APP_REDIS_WARMUP_TABLES`，默认 programs、subjects、books、knowledge_trees、questions、papers、notices、milestones）。
+- 连接参数：`REDIS_HOST`（默认 127.0.0.1）、`REDIS_PORT`（6379）、`REDIS_DATABASE`（0）、`REDIS_TIMEOUT` / `REDIS_CONNECT_TIMEOUT`（均 800ms）。
+- 启用方式：装好 Redis（Windows 可用 Memurai 或 WSL 的 redis-server，Docker `redis:7` 亦可），设 `APP_REDIS_CACHE_ENABLED=true`，或在被 Git 忽略的 `.local-data/cache-local.properties` 写入 `app.cache.redis-enabled=true`，重启后端即可。
+- 成功日志：`缓存预热完成：8 张表 / N 个 key，耗时 xxx ms`；key 形如 `kaoyan:v1:{表}:public`、`kaoyan:v1:{表}:public:{id}`。
+- 写失效：公开聚合在事务提交后删除对应 key（`CacheEvictor`），私有 owner 数据不进缓存。
+- 排障：连不上时日志为 `Redis 读取失败，30 秒内降级为直查数据库：...`；预热阶段为 `Redis 不可用，本次跳过预热`。
+
+## 消息队列（可选，RabbitMQ）
+
+RabbitMQ 也不是运行必需组件：默认 `app.mq.enabled=false`，应用完全不连 broker，后台任务仍按 500 ms 轮询 `jobs` 表、SSE 事件仍按 1 秒轮询 `event_outbox`，行为与引入 MQ 之前一致。
+
+开启后只做两件事：
+
+- **任务投递**：任务行写入 `jobs` 后投递一条只含 `userId`/`jobId` 的消息，消费者立即执行，不再等下一次扫表；多实例部署时任务分摊到各实例。消费与轮询共用 `JobWorker.dispatch`，跨实例仍靠 `jobs` 行锁 + 版本号抢占，重复投递或两实例同时收到也只会执行一次。
+- **事件广播**：事件写入 `event_outbox` 后广播，每个实例收到就把事件推给自己本地的 SSE 连接，解决“用户连在 A 实例、任务在 B 实例执行，A 收不到事件”的问题；正文仍从 outbox 读，游标去重。
+
+- 拓扑：`kaoyan.job.exchange`(direct) → `kaoyan.job.queue`（routing `job.queued`）；消费失败重试 3 次（1 s / 2 s / 5 s）后经 `kaoyan.dlx` 进入死信队列 `kaoyan.job.dlq`；`kaoyan.event.exchange`(topic) → `kaoyan.event.queue`（routing `event.broadcast`）。队列与交换机均 durable。
+- 连接参数：`RABBITMQ_HOST`（默认 127.0.0.1）、`RABBITMQ_PORT`（5672）、`RABBITMQ_USERNAME` / `RABBITMQ_PASSWORD`（guest/guest）、`RABBITMQ_VHOST`（`/`）、`RABBITMQ_CONNECT_TIMEOUT`（3s）、`RABBITMQ_PREFETCH`（2）。
+- 启用方式：`docker compose up -d rabbitmq`（管理台 http://127.0.0.1:15672），或本机安装 RabbitMQ；设 `APP_MQ_ENABLED=true`，或在被 Git 忽略的 `.local-data/mq-local.properties` 写入 `app.mq.enabled=true`，重启后端即可。
+- 启动日志：连上为 `RabbitMQ 已连接，任务投递与事件广播消费者已启动`；连不上只有一条 `RabbitMQ 暂不可用（...），本次不启动 MQ 消费者...`，之后每 60 秒重试（`APP_MQ_PROBE_INTERVAL_MILLIS`），broker 后启动会自动接上，不需要重启应用。
+- 兜底：MQ 开启时轮询仍在，只是间隔拉长到 30 秒（`APP_MQ_SAFETY_SCAN_MILLIS`）；投递失败只记一条 `消息队列不可用，... 改由数据库轮询兜底` 告警，不丢任务。
 
 ## 验证
 
