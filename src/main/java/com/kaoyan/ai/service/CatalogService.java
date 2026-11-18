@@ -5,6 +5,7 @@ import static com.kaoyan.ai.common.Jsons.*;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.node.*;
 import com.kaoyan.ai.common.*;
+import com.kaoyan.ai.infrastructure.cache.CatalogCache;
 import com.kaoyan.ai.persistence.repository.RecordRepository;
 import java.util.*;
 import org.springframework.stereotype.Service;
@@ -12,17 +13,38 @@ import org.springframework.stereotype.Service;
 @Service
 public class CatalogService {
   private final RecordRepository db;
+  private final CatalogCache cache;
 
-  public CatalogService(RecordRepository db) {
+  public CatalogService(RecordRepository db, CatalogCache cache) {
     this.db = db;
+    this.cache = cache;
   }
 
+  /** 公开只读列表：先查 Redis，未命中回源数据库并回填；Redis 不可用时自动降级。 */
   public List<ObjectNode> records(String table) {
-    return db.list(table, "public");
+    Optional<String> cached = cache.list(table);
+    if (cached.isPresent()) return parseObjects(cached.get());
+    List<ObjectNode> rows = db.list(table, "public");
+    cache.putList(table, MAPPER.valueToTree(rows).toString());
+    return rows;
   }
 
   public ObjectNode program(String id) {
-    return db.publicGet("programs", id);
+    return cachedPublicGet("programs", id);
+  }
+
+  private ObjectNode cachedPublicGet(String table, String id) {
+    Optional<String> cached = cache.item(table, id);
+    if (cached.isPresent()) return (ObjectNode) parse(cached.get());
+    ObjectNode value = db.publicGet(table, id);
+    cache.putItem(table, id, value.toString());
+    return value;
+  }
+
+  private static List<ObjectNode> parseObjects(String json) {
+    List<ObjectNode> rows = new ArrayList<>();
+    parse(json).forEach(node -> rows.add((ObjectNode) node));
+    return rows;
   }
 
   public ObjectNode subject(String id) {
@@ -39,7 +61,7 @@ public class CatalogService {
   }
 
   public ObjectNode questionVersion(String id) {
-    return db.publicGet("questions", id);
+    return cachedPublicGet("questions", id);
   }
 
   public ObjectNode displayQuestion(JsonNode stored) {
@@ -146,7 +168,7 @@ public class CatalogService {
       case "op024" -> db.get("evaluations", c.path("id"), c.user());
       case "op025" -> {
         String key = c.q("subject") + ":" + c.q("examType") + ":" + c.q("year");
-        yield db.publicGet("knowledge_trees", key);
+        yield cachedPublicGet("knowledge_trees", key);
       }
       case "op027" -> {
         List<JsonNode> points = new ArrayList<>();

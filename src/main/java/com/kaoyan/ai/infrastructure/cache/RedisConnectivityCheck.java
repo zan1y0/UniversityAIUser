@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
 import org.springframework.stereotype.Component;
 
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
  * 启动日志中的 “Redis 连接成功” 是判断配置是否生效的直接依据。
  */
 @Component
+@ConditionalOnProperty(prefix = "app.cache", name = "redis-enabled", havingValue = "true")
 public class RedisConnectivityCheck implements ApplicationRunner {
   private static final Logger log = LoggerFactory.getLogger(RedisConnectivityCheck.class);
   private static final String PROBE_KEY = "health:startup";

@@ -13,11 +13,11 @@
 ## 项目中的配置
 
 1. `pom.xml` 引入 `spring-boot-starter-data-redis`。
-2. `application.yml` 的 `spring.data.redis` 读取 `REDIS_HOST`、`REDIS_PORT`、`REDIS_PASSWORD`、`REDIS_DB`，连接与读取超时均为 2 秒。
+2. `application.yml` 的 `spring.data.redis` 读取 `REDIS_HOST`、`REDIS_PORT`、`REDIS_PASSWORD` 和 `REDIS_DATABASE`（兼容 `REDIS_DB`）。`REDIS_CONNECT_TIMEOUT` 和 `REDIS_TIMEOUT` 默认均为 800 ms。
 3. `application-local.yml` 通过 `spring.config.import` 读取 `.local-data/redis-local.properties`，该文件已被 `.gitignore` 忽略。
 4. `infrastructure.cache.RedisCache` 提供前缀化键、写入带过期时间、读取、删除和 PING。
-5. `infrastructure.cache.RedisConnectivityCheck` 在启动时写一个探测键、读回比对后删除，成功打印 `Redis 连接成功`；Redis 不可用时只打印告警，不阻塞应用启动。
-6. 键统一加前缀 `kaoyan-ai:`，可被 `REDIS_KEY_PREFIX` 覆盖，避免与同一实例上的其他应用冲突。
+5. 将 `APP_REDIS_CACHE_ENABLED` 设为 `true`，或在 `.local-data/cache-local.properties` 中写入 `app.cache.redis-enabled=true`，启用目录缓存预热和启动连通性检查。检查会写入、读取和删除探测键，成功时打印 `Redis 连接成功`。
+6. 连通性检查使用 `kaoyan-ai:` 前缀，可通过 `REDIS_KEY_PREFIX` 修改。公共目录缓存使用 `kaoyan:v1:` 前缀。
 
 只做缓存：不把 Redis 当业务数据源，也不在其中保存密码、Cookie、JWT 或学生隐私原文。Redis 数据丢失只影响缓存命中，不影响数据库中的业务数据。
 

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.node.*;
 import com.kaoyan.ai.common.*;
 import com.kaoyan.ai.api.contract.ContractRegistry;
+import com.kaoyan.ai.infrastructure.mq.MqPublisher;
 import com.kaoyan.ai.persistence.repository.EventOutboxRepository;
 import com.kaoyan.ai.persistence.repository.RecordRepository;
 import com.kaoyan.ai.service.auth.SessionService;
@@ -27,6 +28,7 @@ public class EventService {
   private final EventOutboxRepository outbox;
   private final JwtService jwt;
   private final PermissionService permissions;
+  private final MqPublisher mq;
 
   private static class Client {
     final String user;
@@ -54,13 +56,14 @@ public class EventService {
       RecordRepository db,
       SessionService sessions,
       ContractRegistry contract,
-      EventOutboxRepository outbox, JwtService jwt, PermissionService permissions) {
+      EventOutboxRepository outbox, JwtService jwt, PermissionService permissions, MqPublisher mq) {
     this.db = db;
     this.sessions = sessions;
     this.contract = contract;
     this.outbox = outbox;
     this.jwt = jwt;
     this.permissions = permissions;
+    this.mq = mq;
   }
 
   @Transactional
@@ -82,6 +85,9 @@ public class EventService {
             data);
     contract.model("EventPayload", n);
     outbox.complete(Long.parseLong(eventId), user, n);
+    // 广播给所有实例：其他实例上的 SSE 连接也能立刻收到（本实例重复收到也没关系，游标会去重）。
+    // MQ 关闭或 broker 不可用时这里是无害的空操作，1 秒轮询照旧补推。
+    mq.broadcastEvent(user, eventId);
     return eventId;
   }
 
@@ -146,38 +152,45 @@ public class EventService {
 
   @Scheduled(fixedDelay = 1000)
   public void deliver() {
-    for (Client c : clients) {
-      try {
-        var rows = outbox.after(c.user, c.cursor);
-        boolean heartbeat = System.currentTimeMillis() - c.ping > 15000;
-        if (rows.isEmpty() && !heartbeat) continue;
-        java.util.List<String> granted;
-        if (c.token != null) {
-          var identity = jwt.verify(c.token);
-          granted = permissions.validate(c.user, identity.getClaimAsString("activeRole"),
-              identity.getClaims().get("authVersion"));
-        } else {
-          if (c.session == null || !c.user.equals(c.session.getAttribute("userId"))
-              || !c.sessionId.equals(c.session.getId()))
-            throw new ApiException(401, "UNAUTHENTICATED", "登录已过期");
-          granted = permissions.validate(c.user, (String) c.session.getAttribute("activeRole"),
-              c.session.getAttribute("authVersion"));
-        }
-        if (!granted.contains("student:study:use"))
-          throw new ApiException(403, "FORBIDDEN", "事件订阅权限已撤销");
-        for (var row : rows) {
-          c.emitter.send(
-              SseEmitter.event().id(Long.toString(row.id())).name(row.type()).data(row.payload()));
-          c.cursor = row.id();
-        }
-        if (heartbeat) {
-          c.emitter.send(SseEmitter.event().comment("heartbeat"));
-          c.ping = System.currentTimeMillis();
-        }
-      } catch (Exception e) {
-        clients.remove(c);
-        c.emitter.complete();
+    for (Client c : clients) push(c);
+  }
+
+  /** 收到 MQ 广播后调用：只推送该用户的连接，让事件不必等下一次 1 秒轮询。 */
+  public void deliverToUser(String user) {
+    for (Client c : clients) if (c.user.equals(user)) push(c);
+  }
+
+  private void push(Client c) {
+    try {
+      var rows = outbox.after(c.user, c.cursor);
+      boolean heartbeat = System.currentTimeMillis() - c.ping > 15000;
+      if (rows.isEmpty() && !heartbeat) return;
+      java.util.List<String> granted;
+      if (c.token != null) {
+        var identity = jwt.verify(c.token);
+        granted = permissions.validate(c.user, identity.getClaimAsString("activeRole"),
+            identity.getClaims().get("authVersion"));
+      } else {
+        if (c.session == null || !c.user.equals(c.session.getAttribute("userId"))
+            || !c.sessionId.equals(c.session.getId()))
+          throw new ApiException(401, "UNAUTHENTICATED", "登录已过期");
+        granted = permissions.validate(c.user, (String) c.session.getAttribute("activeRole"),
+            c.session.getAttribute("authVersion"));
       }
+      if (!granted.contains("student:study:use"))
+        throw new ApiException(403, "FORBIDDEN", "事件订阅权限已撤销");
+      for (var row : rows) {
+        c.emitter.send(
+            SseEmitter.event().id(Long.toString(row.id())).name(row.type()).data(row.payload()));
+        c.cursor = row.id();
+      }
+      if (heartbeat) {
+        c.emitter.send(SseEmitter.event().comment("heartbeat"));
+        c.ping = System.currentTimeMillis();
+      }
+    } catch (Exception e) {
+      clients.remove(c);
+      c.emitter.complete();
     }
   }
 }

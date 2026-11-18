@@ -4,16 +4,20 @@ import static com.kaoyan.ai.common.Jsons.*;
 
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.node.*;
+import com.kaoyan.ai.infrastructure.mq.JobQueued;
 import com.kaoyan.ai.persistence.repository.RecordRepository;
 import com.kaoyan.ai.service.*;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 @Service
 public class JobService {
   private final RecordRepository db;
+  private final ApplicationEventPublisher publisher;
 
-  public JobService(RecordRepository db) {
+  public JobService(RecordRepository db, ApplicationEventPublisher publisher) {
     this.db = db;
+    this.publisher = publisher;
   }
 
   public ObjectNode enqueue(String op, String kind, DomainContext c, String resource) {
@@ -63,6 +67,9 @@ public class JobService {
             c.query(),
             "body",
             c.body()));
+    // 任务行已写入，事务提交后再投递到 MQ（MqPublisher 里用 AFTER_COMMIT 监听），
+    // 消费方读到的任务一定是已提交的；MQ 不可用时仍由 JobWorker 轮询兜底。
+    publisher.publishEvent(new JobQueued(c.user(), jid));
     return obj("jobId", jid, "status", "queued", "resultUrl", url, "resourceId", resource);
   }
 

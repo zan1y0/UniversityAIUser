@@ -140,9 +140,12 @@
 | `ExamDeadlineService` | 服务端处理考试截止，即使用户关闭网页也按服务端时间收卷。 | `closeExpired()`每5秒扫描考试会话，在事务和用户锁内调用op061交卷入队。 |
 | `ReminderService` | 根据生效计划和用户提醒设置，生成到期／超时任务提醒。 | `remind()`每60秒触发，检查任务状态和当日是否已提醒，写通知及事件。它生成站内通知，不等于已接入短信、邮件或手机系统推送。 |
 | `PolicyImportService` | 读取明确配置的本机政策JSON，校验来源与版本，更新政策及关键日期，通知匹配用户。 | `refresh()`每60秒触发；未配置app.policy-file则不执行导入。不是自动联网爬取新闻。 |
-| `EventService` | 组织事件结构、写事件账本、创建站内通知、管理SSE订阅连接并发送事件。 | `publish()`保存事件；`notify()`保存通知；`subscribe()`建立带游标连接；`deliver()`每秒取新事件并发送，约15秒发送心跳。每用户连接数有上限。 |
+| `EventService` | 组织事件结构、写事件账本、创建站内通知、管理SSE订阅连接并发送事件。 | `publish()`保存事件并广播；`notify()`保存通知；`subscribe()`建立带游标连接；`deliver()`每秒取新事件并发送，约15秒发送心跳；`deliverToUser()`供MQ广播消费者立即推送。每用户连接数有上限。 |
+| `MqPublisher` | 把“任务可执行”“事件已写入”投递到RabbitMQ，默认关闭时为空操作。 | 任务消息用`@TransactionalEventListener(AFTER_COMMIT)`在事务提交后发送，保证消费方能读到任务行；`broadcastEvent()`用于事件扇出；broker不可用时只打印告警并回退数据库轮询，不向业务抛异常。 |
+| `JobQueueListener` | 消费任务投递消息，调用`JobWorker.dispatch()`执行。 | 消息只带userId/jobId；与轮询共用同一入口，同实例按jobId去重，跨实例靠jobs行锁+版本抢占，重复投递安全。仅`app.mq.enabled=true`时注册。 |
+| `EventBroadcastListener` | 消费事件广播，调用`EventService.deliverToUser()`推本地SSE连接。 | 解决“用户连在A实例、任务在B实例执行”时事件推不到的问题；正文仍从event_outbox按游标读取，重复推送由游标去重。 |
 
-后台任务当前是单应用进程内的轮询和线程池，持久状态在数据库；不能据此称为已部署Redis队列、Kafka、RabbitMQ或分布式调度系统。
+后台任务默认是单应用进程内的轮询和线程池，持久状态在数据库；开启可选组件RabbitMQ后，任务由MQ消息立即唤醒、事件跨实例广播，但`jobs`与`event_outbox`仍是唯一事实来源，轮询保留为兜底（MQ开启时间隔30秒），因此broker不可用不影响业务。未开启`app.mq.enabled`时不建立任何RabbitMQ连接，也不声明队列。
 
 **当前兼容边界：** EventService的Client和deliver仍以旧HttpSession.userId及sessionId判断连接身份。新AuthService登录会移除userId、使用JWT认证。因此新JWT登录的SSE不能仅凭建立连接就认定持续推送可用，需要进一步适配；前端`waitJob()`的HTTP轮询是另一条独立查询路径。本文如实记录源码，不在文档任务中擅自改动事件逻辑。
 

@@ -6,10 +6,13 @@ import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.node.*;
 import com.kaoyan.ai.common.*;
 import com.kaoyan.ai.api.contract.ContractRegistry;
+import com.kaoyan.ai.infrastructure.mq.MqProperties;
 import com.kaoyan.ai.persistence.repository.RecordRepository;
 import com.kaoyan.ai.service.*;
 import java.util.*;
 import java.util.concurrent.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -17,11 +20,16 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @Component
 public class JobWorker {
+  private static final Logger log = LoggerFactory.getLogger(JobWorker.class);
+
   private final RecordRepository db;
   private final DomainDispatcher domain;
   private final EventService events;
   private final ContractRegistry contract;
   private final TransactionTemplate tx;
+  private final boolean mqEnabled;
+  private final long safetyScanMillis;
+  private volatile long lastScanAt;
   private final Set<String> active = ConcurrentHashMap.newKeySet();
   private final ExecutorService executor =
       Executors.newFixedThreadPool(
@@ -37,16 +45,23 @@ public class JobWorker {
       DomainDispatcher domain,
       EventService events,
       ContractRegistry contract,
-      PlatformTransactionManager manager) {
+      PlatformTransactionManager manager,
+      MqProperties mq) {
     this.db = db;
     this.domain = domain;
     this.events = events;
     this.contract = contract;
     this.tx = new TransactionTemplate(manager);
+    this.mqEnabled = mq.isEnabled();
+    this.safetyScanMillis = mq.getSafetyScanMillis();
   }
 
   @Scheduled(fixedDelay = 500)
   public void poll() {
+    long now = System.currentTimeMillis();
+    // MQ 开启后任务由消费者立即触发，轮询降级为兜底（默认 30 秒扫一次），避免空转扫表。
+    if (mqEnabled && now - lastScanAt < safetyScanMillis) return;
+    lastScanAt = now;
     if (active.size() >= 2) return;
     var rows =
         db.queuedJobs();
@@ -55,15 +70,35 @@ public class JobWorker {
       if (!job.path("status").asText().equals("queued")) continue;
       String jid = job.path("id").asText();
       if (active.size() >= 2) break;
-      if (active.add(jid))
-        executor.execute(
-            () -> {
-              try {
-                run(row.path("owner").asText(), jid);
-              } finally {
-                active.remove(jid);
-              }
-            });
+      dispatch(row.path("owner").asText(), jid);
+    }
+  }
+
+  /**
+   * 任务执行的唯一入口：轮询和 MQ 消费者都走这里。
+   *
+   * <p>同一实例内用 jobId 去重；跨实例靠 {@link #run} 里的事务抢占（只有把 queued 改成 running 成功的那次会执行），
+   * 所以消息重复投递、或多个实例同时收到同一条消息都是安全的。
+   *
+   * <p>线程池满时不阻塞消费线程：消息被确认，任务留在 queued，下一次兜底扫描会重新捡起来。
+   */
+  public void dispatch(String user, String jid) {
+    if (active.size() >= 2) {
+      log.info("任务线程池已满，job={} 留给下一次兜底扫描", jid);
+      return;
+    }
+    if (!active.add(jid)) return;
+    try {
+      executor.execute(
+          () -> {
+            try {
+              run(user, jid);
+            } finally {
+              active.remove(jid);
+            }
+          });
+    } catch (RejectedExecutionException e) {
+      active.remove(jid);
     }
   }
 
