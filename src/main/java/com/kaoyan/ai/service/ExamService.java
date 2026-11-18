@@ -15,16 +15,19 @@ public class ExamService {
   private final RecordRepository db;
   private final CatalogService catalog;
   private final PracticeService practice;
+  private final AttemptMetadata metadata;
   private final com.kaoyan.ai.infrastructure.ai.ModelGateway model;
 
   public ExamService(
       RecordRepository db,
       CatalogService catalog,
       PracticeService practice,
+      AttemptMetadata metadata,
       com.kaoyan.ai.infrastructure.ai.ModelGateway model) {
     this.db = db;
     this.catalog = catalog;
     this.practice = practice;
+    this.metadata = metadata;
     this.model = model;
   }
 
@@ -83,7 +86,9 @@ public class ExamService {
         for (JsonNode x : s.path("questions"))
           if (x.path("id").asText().equals(c.path("qid"))) q = (ObjectNode) x;
         if (q == null) throw ApiException.missing();
-        practice.validateAnswer(q, c.body().path("answer"));
+        boolean skipped = c.body().path("status").asText().equals("skipped");
+        require(skipped == !c.body().hasNonNull("answer"), "跳过状态与答案不匹配");
+        if (!skipped) practice.validateAnswer(q, c.body().path("answer"));
         ArrayNode answers = (ArrayNode) s.get("answers");
         ObjectNode old = null;
         for (JsonNode a : answers)
@@ -101,6 +106,12 @@ public class ExamService {
                 av + 1,
                 "savedAt",
                 now());
+        saved.put("status", skipped ? "skipped" : "answered");
+        JsonNode duration = AttemptMetadata.duration(c.body().path("durationMs"));
+        JsonNode previousDuration = old == null ? null : AttemptMetadata.duration(old.path("durationMs"));
+        if (previousDuration != null && (duration == null || previousDuration.asInt() > duration.asInt()))
+          duration = previousDuration;
+        saved.set("durationMs", duration);
         if (old == null) answers.add(saved);
         else {
           old.removeAll();
@@ -180,6 +191,7 @@ public class ExamService {
     if (!s.path("status").asText().equals("in_progress"))
       throw new ApiException(409, "EXAM_CLOSED", "模考已提交");
     s.put("status", "submitted");
+    s.put("submittedAt", now());
     s.put("version", version + 1);
     db.update("exam_sessions", sid, uid, s, version);
     ObjectNode paper = paper(s.path("paperVersionId").asText());
@@ -226,8 +238,10 @@ public class ExamService {
     for (JsonNode q : session.path("questions")) {
       JsonNode answer = null;
       for (JsonNode a : session.path("answers"))
-        if (a.path("questionId").asText().equals(q.path("id").asText())) answer = a.get("answer");
+        if (a.path("questionId").asText().equals(q.path("id").asText()) && a.hasNonNull("answer"))
+          answer = a.get("answer");
       double points = 0;
+      boolean isCorrect = false;
       JsonNode dimension;
       if (q.path("kind").asText().equals("text")) {
         if (answer != null) {
@@ -250,6 +264,7 @@ public class ExamService {
                     && dimension.path("maxScore").asDouble() == q.path("maxScore").asDouble(),
                 "模型评分超出本题范围");
             points = dimension.path("score").asDouble();
+            isCorrect = points >= q.path("maxScore").asDouble() * 0.6;
             usedModel = true;
           } catch (ApiException e) {
             failure = e;
@@ -260,12 +275,9 @@ public class ExamService {
               obj("name", "主观题", "score", 0, "maxScore", q.get("maxScore"), "feedback", "未作答");
         subjective += points;
       } else {
-        boolean correct =
-            answer != null
-                && practice.correct(
-                    catalog.questionVersion(q.path("versionId").asText()).get("correctAnswer"),
-                    answer);
-        points = correct ? q.path("maxScore").asDouble() : 0;
+        isCorrect = answer != null && practice.correct(
+            catalog.questionVersion(q.path("versionId").asText()).get("correctAnswer"), answer);
+        points = isCorrect ? q.path("maxScore").asDouble() : 0;
         objective += points;
         dimension =
             obj(
@@ -276,9 +288,13 @@ public class ExamService {
                 "maxScore",
                 q.get("maxScore"),
                 "feedback",
-                correct ? "作答正确" : "复习对应知识点");
+                answer == null ? "未作答" : isCorrect ? "作答正确" : "复习对应知识点");
       }
-      dimensions.add(dimension);
+      ObjectNode item = (ObjectNode) dimension;
+      item.set("questionId", q.get("id"));
+      item.set("questionVersionId", q.get("versionId"));
+      item.set("correct", answer == null ? null : MAPPER.valueToTree(isCorrect));
+      dimensions.add(item);
       if (points < q.path("maxScore").asDouble()
           && !weak.toString().contains(q.path("subjectId").asText())) weak.add(q.get("subjectId"));
     }
@@ -301,10 +317,14 @@ public class ExamService {
 
   public ObjectNode saveResult(String user, String sessionId, ObjectNode result) {
     ObjectNode old = db.get("exam_results", sessionId, user);
+    if (old.path("scoringStatus").asText().equals("completed")) return old;
     int version = old.path("version").asInt();
     result.put("version", version + 1);
+    if (result.path("scoringStatus").asText().equals("completed"))
+      result.put("scoredAt", now());
     db.update("exam_results", sessionId, user, result, version);
     if (result.path("scoringStatus").asText().equals("completed")) {
+      saveGradedAnswers(user, sessionId, result);
       String snapshot = result.path("scoreSnapshotId").asText();
       db.create(
           "score_snapshots",
@@ -323,6 +343,33 @@ public class ExamService {
               now()));
     }
     return result;
+  }
+
+  private void saveGradedAnswers(String user, String sessionId, ObjectNode result) {
+    ObjectNode session = db.get("exam_sessions", sessionId, user);
+    Map<String, JsonNode> saved = new HashMap<>(), grades = new HashMap<>();
+    for (JsonNode a : session.path("answers")) saved.put(a.path("questionId").asText(), a);
+    for (JsonNode grade : result.path("dimensions"))
+      grades.put(grade.path("questionVersionId").asText(), grade);
+    ArrayNode answers = arr();
+    for (JsonNode question : session.path("questions")) {
+      String questionId = question.path("id").asText();
+      JsonNode grade = grades.get(question.path("versionId").asText());
+      ObjectNode answer = saved.get(questionId) instanceof ObjectNode existing ? existing
+          : obj("questionId", questionId, "answer", null, "version", 1, "savedAt", null);
+      answer.put("status", answer.hasNonNull("answer") ? "answered"
+          : "skipped".equals(answer.path("status").asText()) ? "skipped" : "unanswered");
+      answer.set("questionVersionId", question.get("versionId"));
+      metadata.copyQuestionMetadata(answer, question);
+      answer.set("correct", grade.get("correct"));
+      answer.set("score", grade.get("score"));
+      answer.set("maxScore", grade.get("maxScore"));
+      answers.add(answer);
+    }
+    session.set("answers", answers);
+    int version = session.path("version").asInt();
+    session.put("version", version + 1);
+    db.update("exam_sessions", sessionId, user, session, version);
   }
 
   public ObjectNode estimate(DomainContext c) {

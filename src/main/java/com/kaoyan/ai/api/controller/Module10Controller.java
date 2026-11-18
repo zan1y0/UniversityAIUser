@@ -56,4 +56,19 @@ public class Module10Controller {
       HttpServletRequest request) {
     return api.execute("op074", paths, body, request);
   }
+
+  @GetMapping("/api/v1/analytics/mastery-estimates")
+  public ResponseEntity<?> masteryEstimates(HttpServletRequest request) {
+    return api.execute("op139", Map.of(), null, request);
+  }
+
+  @GetMapping("/api/v1/analytics/recommendations")
+  public ResponseEntity<?> recommendations(HttpServletRequest request) {
+    return api.execute("op140", Map.of(), null, request);
+  }
+
+  @GetMapping("/api/v1/analytics/training-sequence")
+  public ResponseEntity<?> trainingSequence(HttpServletRequest request) {
+    return api.execute("op141", Map.of(), null, request);
+  }
 }

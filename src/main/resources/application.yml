@@ -18,6 +18,16 @@ spring:
       "[mail.smtp.connectiontimeout]": 5000
       "[mail.smtp.timeout]": 5000
       "[mail.smtp.writetimeout]": 5000
+  # 本机 Redis 服务（Windows 服务名 Redis，安装目录 D:\Redis）。密码等本机值放在
+  # .local-data/redis-local.properties，不提交仓库；未启动 Redis 时应用仍可按数据库启动，仅缓存不可用。
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DB:0}
+      timeout: 2s
+      connect-timeout: 2s
   application:
     name: kaoyan-ai-server
   profiles:
@@ -45,6 +55,9 @@ springdoc:
   swagger-ui:
     url: /contract/openapi.json
 app:
+  cache:
+    # 与同一 Redis 实例上的其他应用隔离；键最终形如 kaoyan-ai:<name>。
+    key-prefix: "${REDIS_KEY_PREFIX:kaoyan-ai:}"
   account-mail:
     from: ${APP_MAIL_FROM:}
     code-secret: ${APP_EMAIL_CODE_SECRET:}
@@ -58,6 +71,12 @@ app:
   seed-local: false
   ffprobe-executable: ${APP_FFPROBE_EXECUTABLE:}
 ai:
+  kt:
+    enabled: ${AI_KT_ENABLED:false}
+    base-url: ${AI_KT_BASE_URL:}
+    timeout-ms: ${AI_KT_TIMEOUT_MS:800}
+    model-version: ${AI_KT_MODEL_VERSION:kt-gkt-v1}
+    previous-model-version: ${AI_KT_PREVIOUS_MODEL_VERSION:}
   llm:
     base-url: ${AI_LLM_BASE_URL:}
     api-key: ${AI_LLM_API_KEY:}

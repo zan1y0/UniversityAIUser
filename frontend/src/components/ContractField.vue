@@ -10,6 +10,7 @@ const props = defineProps<{
   modelValue: unknown;
   required?: boolean;
   questionId?: string;
+  omitFields?: string[];
 }>();
 const emit = defineEmits<{ 'update:modelValue': [value: unknown] }>();
 const catalog = useCatalogStore();
@@ -19,6 +20,11 @@ const current = computed(() =>
   definition.value.oneOf ? displaySchema(definition.value.oneOf[variant.value]!) : definition.value,
 );
 const objectValue = computed(() => (isRecord(props.modelValue) ? props.modelValue : {}));
+const fields = computed(() =>
+  Object.entries(current.value.properties || {}).filter(
+    ([key]) => !props.omitFields?.includes(key),
+  ),
+);
 const arrayValue = computed(() => (Array.isArray(props.modelValue) ? props.modelValue : []));
 const choices = computed(() => catalog.options(props.name, props.questionId));
 watch(
@@ -130,7 +136,7 @@ function selectMany(event: Event) {
     <template v-if="current.type === 'object'">
       <fieldset class="contract-group">
         <legend v-if="name !== 'body'">{{ label(name) }}</legend>
-        <template v-for="(field, key) in current.properties" :key="key">
+        <template v-for="[key, field] in fields" :key="key">
           <label
             v-if="!technicalFields.has(String(key)) && !current.required?.includes(String(key))"
             class="optional-toggle"

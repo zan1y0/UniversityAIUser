@@ -15,12 +15,15 @@ import org.springframework.stereotype.Service;
 public class PracticeService {
   private final RecordRepository db;
   private final CatalogService catalog;
+  private final AttemptMetadata metadata;
   private final com.kaoyan.ai.infrastructure.ai.ModelGateway model;
 
   public PracticeService(
-      RecordRepository db, CatalogService catalog, com.kaoyan.ai.infrastructure.ai.ModelGateway model) {
+      RecordRepository db, CatalogService catalog, AttemptMetadata metadata,
+      com.kaoyan.ai.infrastructure.ai.ModelGateway model) {
     this.db = db;
     this.catalog = catalog;
+    this.metadata = metadata;
     this.model = model;
   }
 
@@ -32,6 +35,7 @@ public class PracticeService {
       require(options.contains(answer.path("optionId").asText()), "选项不属于该题");
     if (answer.has("optionIds"))
       for (JsonNode v : answer.path("optionIds")) require(options.contains(v.asText()), "选项不属于该题");
+    require(AttemptMetadata.hasAnswer(answer), "答案不能为空");
   }
 
   public boolean correct(JsonNode expected, JsonNode answer) {
@@ -88,8 +92,13 @@ public class PracticeService {
         db.create("practice_sessions", s.path("id").asText(), user, s);
         yield s;
       }
-      case "op044" -> db.get("practice_sessions", c.path("id"), user);
+      case "op044" -> {
+        ObjectNode session = db.get("practice_sessions", c.path("id"), user);
+        session.remove(List.of("lastSeq", "questionAttempts"));
+        yield session;
+      }
       case "op045" -> {
+        String submittedAt = now();
         ObjectNode session = db.get("practice_sessions", c.path("id"), user);
         ObjectNode selected = null;
         for (JsonNode x : session.path("questions"))
@@ -178,6 +187,11 @@ public class PracticeService {
                 wrongId,
                 "createdAt",
                 now());
+        metadata.copyQuestionMetadata(attempt, selected);
+        attempt.set("durationMs", AttemptMetadata.duration(b.path("durationMs")));
+        attempt.set("changed", b.get("changed"));
+        attempt.put("submittedAt", submittedAt);
+        assignSequence(user, session, attempt);
         db.create("attempts", attempt.path("id").asText(), user, attempt);
         yield attempt;
       }
@@ -228,20 +242,19 @@ public class PracticeService {
                 : c.q("timeRange").equals("month")
                     ? today().minusDays(29)
                     : LocalDate.of(2000, 1, 1);
-        List<ObjectNode> attempts = db.list("attempts", user);
+        Map<String, int[]> counts = new HashMap<>();
+        var snapshots = metadata.snapshots(user);
+        for (ObjectNode a : db.list("attempts", user)) {
+          if (Instant.parse(a.path("createdAt").asText()).atZone(ZONE).toLocalDate().isBefore(since)) continue;
+          JsonNode question = snapshots.resolve(a);
+          if (!question.path("subjectId").asText().equals(c.q("subjectId"))) continue;
+          int[] count = counts.computeIfAbsent(question.path("knowledgeId").asText(), ignored -> new int[2]);
+          count[0]++;
+          if (a.path("correct").asBoolean()) count[1]++;
+        }
         for (JsonNode k : catalog.subject(c.q("subjectId")).path("nodes")) {
-          int n = 0, ok = 0;
-          for (ObjectNode a : attempts) {
-            ObjectNode question = catalog.questionVersion(a.path("questionVersionId").asText());
-            if (question.path("question").path("knowledgeId").asText().equals(k.path("id").asText())
-                && !Instant.parse(a.path("createdAt").asText())
-                    .atZone(ZONE)
-                    .toLocalDate()
-                    .isBefore(since)) {
-              n++;
-              if (a.path("correct").asBoolean()) ok++;
-            }
-          }
+          int[] count = counts.getOrDefault(k.path("id").asText(), new int[2]);
+          int n = count[0], ok = count[1];
           items.add(
               obj(
                   "knowledgeId",
@@ -265,5 +278,28 @@ public class PracticeService {
       }
       default -> throw new IllegalArgumentException(op);
     };
+  }
+
+  private void assignSequence(String user, ObjectNode session, ObjectNode attempt) {
+    String sessionId = session.path("id").asText();
+    int lastSeq = session.path("lastSeq").asInt();
+    ObjectNode counts = session.path("questionAttempts") instanceof ObjectNode existing
+        ? existing : obj();
+    if (!session.has("lastSeq")) {
+      for (ObjectNode previous : db.list("attempts", user)) {
+        if (!sessionId.equals(previous.path("sessionId").asText())) continue;
+        lastSeq++;
+        String question = previous.path("questionVersionId").asText();
+        counts.put(question, counts.path(question).asInt() + 1);
+      }
+    }
+    String question = attempt.path("questionVersionId").asText();
+    int attemptNo = counts.path(question).asInt() + 1;
+    counts.put(question, attemptNo);
+    attempt.put("seq", lastSeq + 1);
+    attempt.put("attemptNo", attemptNo);
+    session.put("lastSeq", lastSeq + 1);
+    session.set("questionAttempts", counts);
+    db.replace("practice_sessions", sessionId, user, session);
   }
 }

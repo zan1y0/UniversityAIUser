@@ -19,6 +19,7 @@ const permissions = ref<Permission[]>([]);
 const logs = ref<Audit[]>([]);
 const panel = ref('users');
 const reason = ref('');
+const reasonInput = ref<HTMLInputElement | null>(null);
 const search = ref('');
 const roleFilter = ref('');
 const name = ref('');
@@ -31,8 +32,13 @@ const notice = ref('');
 const busy = ref(false);
 const items = async <T,>(path: string): Promise<T[]> => (await request(path) as { items: T[] }).items;
 const mutate = (path: string, method: string, body: object = {}) =>
-  request(path, { method, body: { ...body, reason: reason.value } });
+  request(path, { method, body: { ...body, reason: reason.value.trim() } });
 const userPath = (id: string) => '/admin/users/' + encodeURIComponent(id);
+const invitationLabels: Record<string, string> = {
+  PENDING: '邀请正在发送',
+  SENT: '邮件服务已接收',
+  FAILED: '邀请发送失败，可重发',
+};
 async function load() {
   if (panel.value === 'users' && has('user:list')) users.value = await items('/admin/users?' +
     new URLSearchParams({ email: search.value, role: roleFilter.value, page: String(page.value) }));
@@ -44,21 +50,32 @@ async function load() {
   if (panel.value === 'audit') logs.value = await items('/admin/audit?page=' + page.value);
   if (panel.value === 'settings') announcement.value = (await request('/admin/settings') as { announcement: string }).announcement;
 }
-async function run(operation: () => Promise<unknown>, mutation = false) {
+async function run(operation: () => Promise<unknown>, mutation = false, success = '操作已完成。') {
   if (busy.value) return;
   error.value = '';
   notice.value = '';
-  if (mutation && !reason.value.trim()) { error.value = '请填写操作原因。'; return; }
+  if (mutation && !reason.value.trim()) {
+    error.value = '请填写操作原因后再提交。';
+    reasonInput.value?.focus();
+    return;
+  }
   busy.value = true;
   try {
     await operation();
-    if (mutation) { notice.value = '操作已完成。'; await load(); }
+    if (mutation) { notice.value = success; await load(); }
   } catch (e) {
     error.value = e instanceof Error ? e.message : '操作失败';
-    if (mutation && panel.value === 'users') {
+    if (mutation && (panel.value === 'users' || panel.value === 'legacy')) {
       try { await load(); } catch { /* keep original error */ }
     }
   } finally { busy.value = false; }
+}
+function sendTeacherInvitation() {
+  return run(async () => {
+    await mutate('/admin/teachers', 'POST', { email: email.value, displayName: name.value });
+    email.value = '';
+    name.value = '';
+  }, true, '老师账号已创建，邮件服务已接收邀请。请老师查收邮件并激活账号。');
 }
 function selectPanel(value: string) {
   panel.value = value;
@@ -88,12 +105,13 @@ onMounted(() => {
       <button v-if="has('system:log:read')" class="btn" type="button" @click="selectPanel('audit')">操作日志</button>
       <button v-if="has('system:config:manage')" class="btn" type="button" @click="selectPanel('settings')">系统配置</button>
     </nav>
-    <label v-if="panel !== 'audit'">操作原因 <input v-model="reason" maxlength="250" /></label>
+    <label v-if="panel !== 'audit'">操作原因
+      <input ref="reasonInput" v-model="reason" maxlength="250" placeholder="例如：新增考研指导老师" aria-required="true" />
+    </label>
     <p v-if="error" role="alert">{{ error }}</p>
     <p v-if="notice" role="status">{{ notice }}</p>
     <template v-if="panel === 'users' || panel === 'legacy'">
-      <form v-if="panel === 'users' && has('teacher:create')" class="identity-card" @submit.prevent="run(() =>
-        mutate('/admin/teachers', 'POST', { email, displayName: name }), true)">
+      <form v-if="panel === 'users' && has('teacher:create')" class="identity-card" @submit.prevent="sendTeacherInvitation">
         <h2>发放老师账号</h2>
         <label>老师姓名<input v-model="name" required maxlength="32" /></label>
         <label>老师邮箱<input v-model="email" type="email" required /></label>
@@ -106,7 +124,9 @@ onMounted(() => {
       </form>
       <article v-for="user in users" :key="user.id" class="identity-card">
         <strong>{{ user.displayName || user.teacherLogin || user.legacyLogin || user.id }}</strong>
-        <span>{{ user.email }} {{ user.status }} {{ user.roles.join('、') }} {{ user.deliveryStatus }}</span>
+        <span>{{ user.email }} {{ user.status === 'PENDING_ACTIVATION' ? '待激活' : user.status }} {{ user.roles.join('、') }}</span>
+        <span v-if="user.deliveryStatus">{{ invitationLabels[user.deliveryStatus] ?? user.deliveryStatus }}</span>
+        <span v-else-if="user.status === 'PENDING_ACTIVATION' && !user.email">尚未绑定邮箱，可在「历史账号」发起认领。</span>
         <div class="admin-actions">
           <button v-if="has('user:list')" class="btn" @click="detail(user)">详情</button>
           <button v-if="has('user:disable') && user.status === 'ENABLED'" class="btn" @click="run(() =>
@@ -115,7 +135,7 @@ onMounted(() => {
             mutate(userPath(user.id) + '/enable', 'POST'), true)">恢复</button>
           <template v-if="user.deliveryStatus && user.status === 'PENDING_ACTIVATION'">
             <button v-if="has('teacher:invite') && has('user:update')" class="btn" @click="run(() =>
-              mutate(userPath(user.id) + '/invitation/resend', 'POST'), true)">重发邀请</button>
+              mutate(userPath(user.id) + '/invitation/resend', 'POST'), true, '邮件服务已接收重发的邀请，请使用最新邮件中的链接。')">重发邀请</button>
             <button v-if="has('teacher:manage') && has('user:update')" class="btn" @click="run(() =>
               mutate(userPath(user.id) + '/invitation/cancel', 'POST'), true)">取消邀请</button>
           </template>

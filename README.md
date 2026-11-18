@@ -39,6 +39,8 @@ local 配置使用 `.local-data/kaoyan.mv.db`，不是你的 MySQL 数据库。F
 
 所有路径、请求方法和字段以 [OpenAPI 契约](contracts/openapi.json) 为准。邮箱认证使用 `/auth` 接口，JWT 经 HttpOnly `AUTH_TOKEN` Cookie 签发；`/session/login` 兼容同一邮箱凭据。注册、登录前获取 CSRF，成功后再获取一次，所有写请求均须携带绑定到会话的 `X-CSRF-Token`。幂等写请求还须携带 UUID `Idempotency-Key`；有 `requestId` 或 `eventId` 时二者必须一致。
 
+知识追踪的训练批次、推理服务协议和清单落地状态见 [知识追踪接入说明](docs/知识追踪接入说明.md)。
+
 ## 当前业务行为
 
 | 模块 | 本地行为 |
@@ -83,7 +85,11 @@ AI_AUDIO_MODEL=<支持 /audio/transcriptions 的模型>
 
 mysql 配置不会注入 H2 本地种子账号或样例资料，目前新库的 `app_users` 为空，`student` 演示账号不能直接用于 MySQL 登录。账号和课程初始化属于后续业务配置，不自动迁移 H2 数据。
 
-持久化按聚合使用独立表，公共目录快照与用户资源通过 owner 隔离；聚合的子项保存在受契约约束的 JSON 文本中。版本列执行乐观锁，写业务通过事务和用户行锁串行化；幂等响应与业务修改在同一事务保存。保留既有聚合 JSON 存储格式，持久化改由 MyBatis Mapper 接口和 XML 执行；无需重建数据库或迁移已有数据。Mapper 实体位于 `entity`，SQL 位于 `src/main/resources/mapper/`。当前未接入 Redis、OSS。
+持久化按聚合使用独立表，公共目录快照与用户资源通过 owner 隔离；聚合的子项保存在受契约约束的 JSON 文本中。版本列执行乐观锁，写业务通过事务和用户行锁串行化；幂等响应与业务修改在同一事务保存。保留既有聚合 JSON 存储格式，持久化改由 MyBatis Mapper 接口和 XML 执行；无需重建数据库或迁移已有数据。Mapper 实体位于 `entity`，SQL 位于 `src/main/resources/mapper/`。本机 Redis 已作为可选缓存接入，说明见下文；当前未接入 OSS。
+
+## 本机 Redis 连接
+
+2026-11-17 已接入本机 Windows 服务 `Redis`（安装目录 `D:\Redis`，127.0.0.1:6379）。连接参数位于 `application.yml` 的 `spring.data.redis`，密码等本机值放在被 Git 忽略的 `.local-data/redis-local.properties`；也可用 `REDIS_HOST`、`REDIS_PORT`、`REDIS_PASSWORD`、`REDIS_DB`、`REDIS_KEY_PREFIX` 覆盖。启动日志出现 `Redis 连接成功` 表示连接、PING 和读写校验都通过；Redis 未启动时只记录告警，应用继续按数据库启动。Redis 只承担缓存，不是业务数据源，也不保存密码、Cookie、JWT 或学生隐私原文。详见 [本机 Redis 连接说明](docs/本机Redis连接说明.md)。
 
 ## 验证
 

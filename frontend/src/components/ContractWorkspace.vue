@@ -122,6 +122,9 @@ const titleOverrides: Record<string, string> = {
   op067: '结束练习并生成总结',
   op069: '完善我的自我介绍',
   op071: '记录一次学习',
+  op139: '查看掌握度估计',
+  op140: '查看推荐练习',
+  op141: '导出本人训练序列',
   op078: '设置院校与政策关注',
 };
 const buttonTitle = (id: OperationId) => titleOverrides[id] || operations[id]!.title;
@@ -143,6 +146,63 @@ const latestExam = computed(
     catalog.options('examSessionId').find((v) => v.value === form.value.path?.id) ||
     catalog.options('examSessionId').at(-1),
 );
+function examAnswer(sessionId: unknown, questionId: unknown) {
+  const session = catalog.options('examSessionId').find((option) => option.value === sessionId);
+  const answers = session?.record.answers;
+  return Array.isArray(answers)
+    ? answers.find((answer) => isRecord(answer) && answer.questionId === questionId)
+    : undefined;
+}
+const timedQuestion = computed(() => {
+  const session = form.value.path?.id;
+  if (typeof session !== 'string' || !session) return '';
+  if (active.value === 'op060' && !closedExam.value && typeof form.value.path?.qid === 'string')
+    return `exam:${session}:${form.value.path.qid}`;
+  const body = form.value.body;
+  return active.value === 'op045' &&
+    isRecord(body) &&
+    typeof body.questionVersionId === 'string' &&
+    body.questionVersionId
+    ? `practice:${session}:${body.questionVersionId}`
+    : '';
+});
+type Timing = { elapsed: number; previousAnswer?: string; changed: boolean };
+const timings = new Map<string, Timing>();
+let ticking = '';
+let tickStarted = 0;
+function updateTiming() {
+  const time = performance.now();
+  if (ticking) {
+    const previous = timings.get(ticking);
+    if (previous) previous.elapsed += time - tickStarted;
+  }
+  ticking = !loading.value && document.visibilityState === 'visible' ? timedQuestion.value : '';
+  tickStarted = time;
+  if (ticking && !timings.has(ticking)) {
+    const saved =
+      active.value === 'op060' ? examAnswer(form.value.path?.id, form.value.path?.qid) : undefined;
+    timings.set(ticking, {
+      elapsed: isRecord(saved) && typeof saved.durationMs === 'number' ? saved.durationMs : 0,
+      changed: false,
+    });
+  }
+}
+function trackAnswer(choice: boolean) {
+  if (active.value !== 'op045' || !isRecord(form.value.body)) return;
+  const answer = form.value.body.answer;
+  const timing = timings.get(timedQuestion.value);
+  if (!timing || !isRecord(answer)) return;
+  let value: unknown;
+  if (choice && answer.kind === 'singleChoice') value = answer.optionId;
+  if (choice && answer.kind === 'multipleChoice' && Array.isArray(answer.optionIds))
+    value = answer.optionIds.length ? [...answer.optionIds].sort() : undefined;
+  if (!choice && answer.kind === 'text') value = answer.content;
+  if (!choice && answer.kind === 'numeric') value = answer.value;
+  if (value === undefined || String(value).trim() === '') return;
+  const serialized = JSON.stringify(value);
+  timing.changed ||= timing.previousAnswer !== undefined && timing.previousAnswer !== serialized;
+  timing.previousAnswer = serialized;
+}
 const remaining = computed(() =>
   latestExam.value
     ? Math.max(
@@ -316,9 +376,10 @@ function mergeTechnical(
         else if (field === 'profileVersion') next[field] = catalog.profile?.version || 1;
         else if (field === 'progressVersion')
           next[field] = catalog.progressVersions[String(path.id)] || 1;
-        else if (field === 'version' && active.value === 'op060')
-          next[field] = catalog.answerVersions[String(path.qid)] || 0;
-        else
+        else if (field === 'version' && active.value === 'op060') {
+          const saved = examAnswer(path.id, path.qid);
+          next[field] = isRecord(saved) && typeof saved.version === 'number' ? saved.version : 0;
+        } else
           next[field] =
             catalog.versions[String(path.taskId || path.id)] ||
             Number(next[field]) ||
@@ -333,13 +394,16 @@ function mergeTechnical(
   return value;
 }
 const interactionContext = crypto.randomUUID();
-async function run(retry = false) {
+async function run(retry = false, skip = false) {
   if (loading.value) return;
   if (active.value === 'op060' && closedExam.value) {
     error.value = '考试已结束，不能继续修改答案。';
     return;
   }
   const sequence = ++runSequence;
+  const timingKey = timedQuestion.value;
+  trackAnswer(false);
+  clearTimeout(automaticSave);
   controller = new AbortController();
   loading.value = true;
   error.value = '';
@@ -373,6 +437,17 @@ async function run(retry = false) {
           key || crypto.randomUUID(),
           input.path || {},
         );
+      if ((id === 'op045' || id === 'op060') && isRecord(input.body)) {
+        const timing = timings.get(timingKey);
+        if (timing) {
+          input.body.durationMs = Math.min(86_400_000, Math.round(timing.elapsed));
+          if (id === 'op045') input.body.changed = timing.changed;
+        }
+        if (id === 'op060' && skip) {
+          input.body.answer = null;
+          input.body.status = 'skipped';
+        }
+      }
       if (id === 'op061' && typeof input.path?.id === 'string') {
         const latest = await execute(
           'op059',
@@ -415,6 +490,9 @@ async function run(retry = false) {
     if (isRecord(data) && 'deadlineAt' in data) {
       clockOffset = Date.parse(String(data.serverTime)) - Date.now();
       if (app.user) saveSessionValue(`kaoyan-exam:${app.user.id}`, String(data.id));
+    }
+    if (id === 'op045' && timedQuestion.value === timingKey) {
+      timings.set(timingKey, { elapsed: 0, changed: false });
     }
     if (id === 'op060' && typeof input.path?.id === 'string') {
       const latest = await execute(
@@ -650,12 +728,20 @@ watch(
   },
   { deep: true },
 );
+watch([timedQuestion, loading], updateTiming, { flush: 'sync' });
+watch(
+  () => form.value.body,
+  () => trackAnswer(true),
+  { deep: true },
+);
 watch(remaining, (seconds) => {
   if (seconds !== 0 || latestExam.value?.record.status !== 'in_progress' || loading.value) return;
   choose('op061');
   void run();
 });
 onMounted(async () => {
+  document.addEventListener('visibilitychange', updateTiming);
+  updateTiming();
   await initialize();
   if (lifetime.signal.aborted) return;
   closeEvents = subscribeEvents(
@@ -680,6 +766,7 @@ onMounted(async () => {
   clockTimer = setInterval(() => (now.value = Date.now()), 500);
 });
 onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', updateTiming);
   runSequence++;
   controller?.abort();
   lifetime.abort();
@@ -842,6 +929,14 @@ onBeforeUnmount(() => {
             :schema="op.body"
             v-model="form.body"
             :question-id="selectedQuestion"
+            :omit-fields="
+              active === 'op045'
+                ? ['durationMs', 'changed']
+                : active === 'op060'
+                  ? ['durationMs', 'status']
+                  : undefined
+            "
+            @focusout="trackAnswer(false)"
             required
           />
           <p
@@ -862,6 +957,14 @@ onBeforeUnmount(() => {
               :disabled="loading || initializing || (active === 'op060' && closedExam)"
             >
               {{ loading ? '处理中…' : buttonTitle(active) }}</button
+            ><button
+              v-if="active === 'op060'"
+              type="button"
+              class="btn secondary"
+              :disabled="loading || initializing || closedExam || !timedQuestion"
+              @click="run(false, true)"
+            >
+              跳过本题</button
             ><button v-if="loading" type="button" class="btn secondary" @click="cancel">
               停止等待</button
             ><button

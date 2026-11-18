@@ -69,7 +69,9 @@ function resetDemo() {
         ><span>研途 <b>AI</b><small>你的考研成长伙伴</small></span></RouterLink
       >
       <nav aria-label="模块导航">
-        <RouterLink v-if="app.user?.activeRole === 'ADMIN'" to="/admin" class="nav-link">平台管理</RouterLink>
+        <RouterLink v-if="app.user?.activeRole === 'ADMIN'" to="/admin" class="nav-item" @click="menuOpen = false">
+          <AppIcon name="user" :size="19" /><span>平台管理</span>
+        </RouterLink>
         <template v-for="group in ['概览', '学习', '提升', '资讯', '教学'].filter(g => visibleModules.some(m => m.group === g))" :key="group"
           ><p class="nav-label">{{ group }}</p>
           <RouterLink
@@ -93,7 +95,7 @@ function resetDemo() {
           <button class="icon-btn mobile-menu" aria-label="打开导航" @click="menuOpen = !menuOpen">
             <AppIcon name="menu" /></button
           ><span>我的学习空间</span><AppIcon name="chevron" :size="14" /><strong>{{
-            current?.short || '页面'
+            current?.short || route.meta.title || '页面'
           }}</strong>
         </div>
         <div class="topbar-actions">
@@ -118,7 +120,7 @@ function resetDemo() {
         </div>
       </header>
       <main id="main-content" tabindex="-1">
-        <div class="page-heading">
+        <div v-if="!route.meta.title" class="page-heading">
           <div>
             <p class="eyebrow">{{ current?.module }} · KAОYAN LEARNING SPACE</p>
             <h1>{{ current?.title || '页面未找到' }}</h1>

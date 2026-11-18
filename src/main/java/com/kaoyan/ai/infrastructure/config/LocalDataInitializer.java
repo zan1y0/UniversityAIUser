@@ -90,6 +90,7 @@ public class LocalDataInitializer implements ApplicationRunner {
         names = {"导数与极限", "英语词汇", "政治理论基础", "数据结构"};
     for (int i = 0; i < subjects.length; i++) {
       String sid = subjects[i], kid = String.format("40000000-0000-4000-8000-%012d", i + 1);
+      String powerFunction = "40000000-0000-4000-8000-000000000005";
       ObjectNode tree =
           obj(
               "subjectId",
@@ -113,12 +114,24 @@ public class LocalDataInitializer implements ApplicationRunner {
                       0,
                       "order",
                       0,
+                      "prerequisiteIds",
+                      i == 0 ? arr(powerFunction) : arr(),
+                      "category",
+                      i == 0 || i == 3 ? "calculation" : i == 1 ? "memorization" : "concept",
+                      "level",
+                      1,
+                      "knowledgeVersion",
+                      1,
                       "subjectId",
                       sid)),
               "sources",
               arr(),
               "category",
               categories[i]);
+      if (i == 0)
+        ((ArrayNode) tree.get("nodes")).add(obj("id", powerFunction, "parentId", null,
+            "name", "幂函数", "depth", 0, "order", 1, "subjectId", sid,
+            "prerequisiteIds", arr(), "category", "concept", "level", 1, "knowledgeVersion", 1));
       String treeKey =
           i < 3 ? categories[i] + ":" + (i == 0 ? "math1" : categories[i]) + ":2027" : sid;
       db.create("knowledge_trees", treeKey, "public", tree);
@@ -152,6 +165,8 @@ public class LocalDataInitializer implements ApplicationRunner {
                 sid,
                 "knowledgeId",
                 kid,
+                "knowledgeVersion",
+                1,
                 "kind",
                 "singleChoice",
                 "stem",

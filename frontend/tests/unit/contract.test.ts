@@ -14,11 +14,14 @@ afterEach(() => {
   clearCsrf();
 });
 describe('正式接口契约边界', () => {
-  it('覆盖138个接口与11个业务模块，包含认证、督学和班级作业接口', () => {
-    expect(Object.keys(operations)).toHaveLength(138);
+  it('覆盖141个接口与11个业务模块，包含知识追踪接口', () => {
+    expect(Object.keys(operations)).toHaveLength(141);
     expect(operations.op083?.path).toBe('/api/v1/auth/login');
     expect(operations.op086?.multipart).toBe(true);
     expect(operations.op098?.path).toBe('/api/v1/study-mode');
+    expect(operations.op139?.path).toBe('/api/v1/analytics/mastery-estimates');
+    expect(operations.op140?.path).toBe('/api/v1/analytics/recommendations');
+    expect(operations.op141?.path).toBe('/api/v1/analytics/training-sequence');
     expect(
       new Set(
         Object.values(operations)
@@ -72,7 +75,16 @@ describe('正式接口契约边界', () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(ok({ token: 'csrf-test', headerName: 'X-CSRF-Token' }))
-      .mockResolvedValueOnce(ok({ id: uuid, email: 'student@example.test', displayName: '同学', activeRole: 'STUDENT', roles: ['STUDENT'], permissions: [] }));
+      .mockResolvedValueOnce(
+        ok({
+          id: uuid,
+          email: 'student@example.test',
+          displayName: '同学',
+          activeRole: 'STUDENT',
+          roles: ['STUDENT'],
+          permissions: [],
+        }),
+      );
     vi.stubGlobal('fetch', fetchMock);
     await execute('op002', { body: { email: 'student@example.test', password: '12345678' } });
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/v1/session/csrf');

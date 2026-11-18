@@ -14,10 +14,12 @@ import org.springframework.stereotype.Service;
 public class AnalyticsService {
   private final RecordRepository db;
   private final CatalogService catalog;
+  private final AttemptMetadata metadata;
 
-  public AnalyticsService(RecordRepository db, CatalogService catalog) {
+  public AnalyticsService(RecordRepository db, CatalogService catalog, AttemptMetadata metadata) {
     this.db = db;
     this.catalog = catalog;
+    this.metadata = metadata;
   }
 
   private List<ObjectNode> events(String user) {
@@ -55,6 +57,7 @@ public class AnalyticsService {
   }
 
   private List<ObjectNode> attempts(String user, LocalDate from, LocalDate to, String subject) {
+    var snapshots = metadata.snapshots(user);
     return db.list("attempts", user).stream()
         .filter(
             a -> {
@@ -63,12 +66,7 @@ public class AnalyticsService {
                   && !d.isAfter(to)
                   && (subject == null
                       || subject.isEmpty()
-                      || catalog
-                          .questionVersion(a.path("questionVersionId").asText())
-                          .path("question")
-                          .path("subjectId")
-                          .asText()
-                          .equals(subject));
+                      || snapshots.resolve(a).path("subjectId").asText().equals(subject));
             })
         .toList();
   }
@@ -183,18 +181,14 @@ public class AnalyticsService {
         validateRange(from, to);
         ArrayNode items = arr();
         var list = attempts(user, from, to, c.q("subjectId"));
+        var snapshots = metadata.snapshots(user);
+        Map<String, List<ObjectNode>> grouped = new HashMap<>();
+        for (ObjectNode attempt : list) {
+          String knowledge = snapshots.resolve(attempt).path("knowledgeId").asText();
+          grouped.computeIfAbsent(knowledge, ignored -> new ArrayList<>()).add(attempt);
+        }
         for (JsonNode k : catalog.subject(c.q("subjectId")).path("nodes")) {
-          var selected =
-              list.stream()
-                  .filter(
-                      a ->
-                          catalog
-                              .questionVersion(a.path("questionVersionId").asText())
-                              .path("question")
-                              .path("knowledgeId")
-                              .asText()
-                              .equals(k.path("id").asText()))
-                  .toList();
+          var selected = grouped.getOrDefault(k.path("id").asText(), List.of());
           items.add(
               obj(
                   "knowledgeId",

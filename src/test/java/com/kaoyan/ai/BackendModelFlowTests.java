@@ -255,6 +255,11 @@ class BackendModelFlowTests {
     assertEquals(5, r.path("objectiveScore").asDouble());
     assertTrue(r.path("totalScore").isNull());
     assertTrue(r.path("scoreSnapshotId").isNull());
+    assertEquals(1, r.path("dimensions").size());
+    assertTrue(r.path("dimensions").path(0).hasNonNull("questionId"));
+    JsonNode batch = call("GET", "/analytics/training-sequence", null, null, 200);
+    for (JsonNode row : batch.path("items"))
+      assertNotEquals(submission.path("sessionId").asText(), row.path("sessionId").asText());
   }
 
   @Test

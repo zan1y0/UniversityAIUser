@@ -23,6 +23,7 @@ const storageKey = app.user ? 'school-evaluation:' + app.user.id : '';
 const lifetime = new AbortController();
 const year = ref<number | ''>(props.initialYear);
 const major = ref('');
+const targetMajor = ref('');
 const regions = ref('');
 const score = ref<number | ''>('');
 const difficulty = ref<'easy' | 'medium' | 'hard'>('medium');
@@ -69,6 +70,14 @@ const evaluationProgram = computed(
       ?.record,
 );
 const metricNames = { scoreLine: '复试总分线', enrollment: '招生计划', admissionRatio: '报录比' };
+const tierNames: Record<ProgramRecommendation['tier'], string> = {
+  reach: '冲刺',
+  match: '稳妥',
+  safety: '相对保底',
+  highRisk: '高风险',
+  pending: '待评估',
+};
+const gapFormat = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 2, signDisplay: 'exceptZero' });
 const missingNames: Record<string, string> = {
   ...metricNames,
   calibratedHistoricalAdmissions: '经过校准的历史录取样本',
@@ -171,12 +180,14 @@ async function submit() {
         case 'op020': {
           const selectedRegions = regionValues(regions.value);
           const undergraduateMajor = major.value.trim();
+          const selectedMajor = targetMajor.value.trim();
           if (!undergraduateMajor) throw new Error('请填写本科专业。');
           const result = await execute(
             'op020',
             {
               body: {
                 undergraduateMajor,
+                ...(selectedMajor ? { targetMajor: selectedMajor } : {}),
                 ...(selectedRegions.length ? { regions: selectedRegions } : {}),
                 year: inputYear,
                 ...(typeof inputScore === 'number' ? { estimatedScore: inputScore } : {}),
@@ -185,12 +196,7 @@ async function submit() {
             },
             options,
           );
-          const keyword = undergraduateMajor.toLowerCase();
-          const majorMatches = (item: ProgramRecommendation) =>
-            Number(item.program.major.toLowerCase().includes(keyword));
-          recommendations.value = [...result.items].sort(
-            (a, b) => majorMatches(b) - majorMatches(a),
-          );
+          recommendations.value = result.items;
           catalog.collect(result);
           break;
         }
@@ -283,12 +289,15 @@ async function submit() {
             required
             placeholder="例如：计算机科学与技术"
         /></label>
-        <label class="field">意向地区<input v-model="regions" placeholder="不限地区" /></label>
+        <label class="field">
+          目标招生专业<input v-model="targetMajor" maxlength="100" placeholder="选填专业名称或代码" />
+        </label>
+        <label class="field">意向地区<input v-model="regions" placeholder="如上海、江苏，选填" /></label>
         <label class="field"
-          >系统梯度<select v-model="difficulty">
-            <option value="easy">较低</option>
-            <option value="medium">常规（含未评级）</option>
-            <option value="hard">较高</option>
+          >难度偏好<select v-model="difficulty">
+            <option value="easy">相对保底优先</option>
+            <option value="medium">稳妥优先</option>
+            <option value="hard">冲刺优先</option>
           </select></label
         >
       </template>
@@ -334,7 +343,7 @@ async function submit() {
         </label>
       </template>
       <label v-if="operation === 'op020' || operation === 'op023'" class="field">
-        参考总分<input
+        {{ operation === 'op020' ? '预估初试总分' : '参考总分' }}<input
           v-model.number="score"
           type="number"
           min="0"
@@ -399,7 +408,7 @@ async function submit() {
     </div>
     <template v-if="recommendations">
       <p v-if="!recommendations.length" class="muted">
-        没有符合条件的推荐，请调整年份、地区或系统梯度。
+        没有匹配的招生专业，请检查年份和地区，或填写目标招生专业名称或代码。
       </p>
       <div v-else class="result-scroll">
         <table>
@@ -407,7 +416,8 @@ async function submit() {
             <tr>
               <th scope="col">院校 / 招生专业</th>
               <th scope="col">地区 / 年份</th>
-              <th scope="col">复试总分线</th>
+              <th scope="col">推荐档位 / 分差</th>
+              <th scope="col">复试参考线</th>
               <th scope="col">招生计划</th>
               <th scope="col">系统匹配分</th>
               <th scope="col">匹配说明</th>
@@ -418,23 +428,38 @@ async function submit() {
             <tr v-for="item in recommendations" :key="item.program.id">
               <th scope="row">
                 {{ item.program.schoolName }}<small>{{ item.program.programName }}</small>
+                <small v-if="item.studyMode">{{ item.studyMode }}</small>
               </th>
               <td>{{ item.program.region }} · {{ item.program.year }}</td>
-              <td>{{ formatMetric('scoreLine', item.program.scoreLine) }}</td>
+              <td>
+                {{ tierNames[item.tier] }}
+                <small v-if="item.scoreGap != null">分差 {{ gapFormat.format(item.scoreGap) }} 分</small>
+              </td>
+              <td>
+                {{ formatMetric('scoreLine', item.referenceScore) }}
+                <details v-if="item.scoreHistory.length">
+                  <summary>查看复试线来源</summary>
+                  <div v-for="sample in item.scoreHistory" :key="sample.year">
+                    {{ sample.year }} 年 · {{ formatMetric('scoreLine', sample.scoreLine) }}
+                    <SchoolSourceLinks :sources="sample.sources" />
+                  </div>
+                </details>
+              </td>
               <td>{{ formatMetric('enrollment', item.program.enrollment) }}</td>
               <td>
                 {{ item.matchScore != null ? Math.round(item.matchScore) + ' / 100' : '未计算' }}
               </td>
-              <td>{{ item.reasons.join('；') }}</td>
+              <td>
+                {{ item.reasons.join('；') }}
+                <small v-if="item.risks.length" class="muted">{{ item.risks.join('；') }}</small>
+              </td>
               <td><SchoolSourceLinks :sources="item.program.sources" /></td>
             </tr>
           </tbody>
         </table>
       </div>
       <p v-if="recommendations.length" class="muted small space-top">
-        系统匹配分用于参考排序。<span v-if="recommendations[0]?.risks.length">
-          {{ recommendations[0].risks.join('；') }}</span
-        >
+        推荐档位反映预估分与复试参考线的差距，报考条件和录取结果以院校公告为准。
       </p>
     </template>
     <template v-if="facts">

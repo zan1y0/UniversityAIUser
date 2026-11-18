@@ -1,5 +1,8 @@
 # 本地独立数据库；不连接、修改电脑已有 MySQL。
 spring:
+  # 本机 Redis 密码等连接值；文件缺失时使用 application.yml 中的默认值（无密码）。
+  config:
+    import: optional:file:./.local-data/redis-local.properties
   datasource:
     url: jdbc:h2:file:./.local-data/kaoyan;MODE=MySQL;DATABASE_TO_LOWER=TRUE;AUTO_SERVER=FALSE
     driver-class-name: org.h2.Driver

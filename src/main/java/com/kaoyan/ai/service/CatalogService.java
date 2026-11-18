@@ -43,7 +43,19 @@ public class CatalogService {
   }
 
   public ObjectNode displayQuestion(JsonNode stored) {
-    return (ObjectNode) stored.path("question").deepCopy();
+    ObjectNode question = (ObjectNode) stored.path("question").deepCopy();
+    if (!question.hasNonNull("difficultyGrade"))
+      question.set("difficultyGrade", difficultyGrade(question.path("difficulty").asText()));
+    return question;
+  }
+
+  static JsonNode difficultyGrade(String text) {
+    return switch (text.strip().toLowerCase(Locale.ROOT)) {
+      case "easy", "简单" -> MAPPER.valueToTree("easy");
+      case "medium", "中等" -> MAPPER.valueToTree("medium");
+      case "hard", "困难" -> MAPPER.valueToTree("hard");
+      default -> null;
+    };
   }
 
   public List<ObjectNode> questions(String subject, String knowledge, String difficulty) {
@@ -58,9 +70,16 @@ public class CatalogService {
             q ->
                 difficulty == null
                     || difficulty.isEmpty()
-                    || q.path("question").path("difficulty").asText().equals(difficulty))
+                    || q.path("question").path("difficulty").asText().equals(difficulty)
+                    || difficulty.equals(grade(q.path("question"))))
         .map(this::displayQuestion)
         .toList();
+  }
+
+  private String grade(JsonNode question) {
+    if (question.hasNonNull("difficultyGrade")) return question.path("difficultyGrade").asText();
+    JsonNode grade = difficultyGrade(question.path("difficulty").asText());
+    return grade == null ? "" : grade.asText();
   }
 
   public ObjectNode facts(String id, int year) {
@@ -106,42 +125,8 @@ public class CatalogService {
                               || p.path("scoreLine").asDouble() <= q.path("score").asDouble())
                   .toList(),
               q);
-      case "op020" -> {
-        List<JsonNode> list = new ArrayList<>();
-        Set<String> regions = new HashSet<>();
-        b.path("regions").forEach(region -> regions.add(region.asText()));
-        boolean hasScore = b.path("estimatedScore").isNumber();
-        for (ObjectNode p : records("programs")) {
-          if ((regions.isEmpty() || regions.contains(p.path("region").asText()))
-              && p.path("year").asInt() == c.integer("year")
-              && p.path("difficulty").asText().equals(c.b("difficulty"))) {
-            Double score =
-                !hasScore || !p.path("scoreLine").isNumber()
-                    ? null
-                    : Math.max(
-                        0,
-                        Math.min(
-                            100,
-                            70
-                                + (b.path("estimatedScore").asDouble()
-                                        - p.path("scoreLine").asDouble())
-                                    / 3));
-            list.add(
-                obj(
-                    "program",
-                    p,
-                    "matchScore",
-                    score,
-                    "reasons",
-                    arr(regions.isEmpty() ? "符合所选年份和系统梯度" : "符合所选年份、意向地区和系统梯度",
-                        score != null ? "已参考总分和复试线" : hasScore ? "该专业暂无复试线" : "本次未填写参考总分"),
-                    "risks",
-                    arr("匹配分不等于录取概率，请以当年官方招生信息为准")));
-          }
-        }
-        list.sort(Comparator.comparingDouble(x -> -x.path("matchScore").asDouble(-1)));
-        yield obj("items", list);
-      }
+      case "op020" ->
+          SchoolRecommendations.recommend(b, records("programs"), db.publicProgramOriginals());
       case "op021" -> {
         ObjectNode f = facts(c.path("id"), q.path("year").asInt());
         if (q.has("metricTypes")) {
@@ -195,10 +180,9 @@ public class CatalogService {
                 .toList());
       }
       case "op032" -> {
-        ObjectNode tree = subject(c.q("subjectId")).deepCopy();
+        ObjectNode tree = subject(c.q("subjectId"));
         require(tree.path("edition").asText().equals(c.q("bookEdition")), "参考书版本不匹配");
-        tree.remove("category");
-        yield tree;
+        yield publicTree(tree);
       }
       case "op034" ->
           page(
@@ -244,6 +228,40 @@ public class CatalogService {
   public ObjectNode publicTree(ObjectNode t) {
     ObjectNode out = t.deepCopy();
     out.remove("category");
+    out.set("nodes", MAPPER.valueToTree(learningNodes(t)));
     return out;
+  }
+
+  public List<ObjectNode> learningNodes(JsonNode tree) {
+    Map<String, ObjectNode> nodes = new LinkedHashMap<>();
+    for (JsonNode item : tree.path("nodes")) {
+      ObjectNode node = item.deepCopy();
+      nodes.put(node.path("id").asText(), node);
+    }
+    Map<String, Set<String>> edges = new LinkedHashMap<>();
+    for (var entry : nodes.entrySet()) {
+      String id = entry.getKey();
+      Set<String> prerequisites = new LinkedHashSet<>();
+      for (JsonNode prerequisite : entry.getValue().path("prerequisiteIds")) {
+        String target = prerequisite.asText();
+        if (!id.equals(target) && nodes.containsKey(target)
+            && !reaches(target, id, edges, new HashSet<>())) prerequisites.add(target);
+      }
+      edges.put(id, prerequisites);
+    }
+    for (var entry : nodes.entrySet()) {
+      ObjectNode node = entry.getValue();
+      node.set("prerequisiteIds", MAPPER.valueToTree(edges.get(entry.getKey())));
+      if (!node.hasNonNull("level")) node.put("level", node.path("depth").asInt() + 1);
+    }
+    return List.copyOf(nodes.values());
+  }
+
+  private boolean reaches(String from, String target, Map<String, Set<String>> edges, Set<String> visited) {
+    if (from.equals(target)) return true;
+    if (!visited.add(from)) return false;
+    for (String prerequisite : edges.getOrDefault(from, Set.of()))
+      if (reaches(prerequisite, target, edges, visited)) return true;
+    return false;
   }
 }

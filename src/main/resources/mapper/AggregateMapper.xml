@@ -24,6 +24,10 @@
   <select id="findByOwner" resultType="string">
     SELECT payload FROM ${table.name} WHERE owner_id=#{owner} ORDER BY created_at,id
   </select>
+  <select id="findPublicProgramOriginals" resultType="string">
+    SELECT a.original_payload FROM program_catalog_archive a
+    JOIN programs p ON p.id = a.program_id WHERE p.owner_id = 'public'
+  </select>
   <update id="update">
     UPDATE ${table.name} SET payload=#{row.payload},version=#{row.version},updated_at=CURRENT_TIMESTAMP
     WHERE id=#{row.id} AND owner_id=#{row.ownerId} AND version=#{expected}

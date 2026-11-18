@@ -27,6 +27,7 @@ public class DomainDispatcher {
   private final ExamService exams;
   private final QaService qa;
   private final AnalyticsService analytics;
+  private final KnowledgeTracingService knowledgeTracing;
   private final NewsService news;
   private final InterviewService interviews;
   private final RecordRepository db;
@@ -43,6 +44,7 @@ public class DomainDispatcher {
       ExamService exams,
       QaService qa,
       AnalyticsService analytics,
+      KnowledgeTracingService knowledgeTracing,
       NewsService news,
       InterviewService interviews,
       RecordRepository db,
@@ -57,6 +59,7 @@ public class DomainDispatcher {
     this.exams = exams;
     this.qa = qa;
     this.analytics = analytics;
+    this.knowledgeTracing = knowledgeTracing;
     this.news = news;
     this.interviews = interviews;
     this.db = db;
@@ -86,6 +89,7 @@ public class DomainDispatcher {
     if (n >= 58 && n <= 64) return exams.execute(op, c);
     if (n >= 65 && n <= 69) return interviews.execute(op, c);
     if (n >= 71 && n <= 74) return analytics.execute(op, c);
+    if (n >= 139 && n <= 141) return knowledgeTracing.execute(op, c);
     if (n >= 75 && n <= 81) return news.execute(op, c);
     throw new IllegalArgumentException(op);
   }

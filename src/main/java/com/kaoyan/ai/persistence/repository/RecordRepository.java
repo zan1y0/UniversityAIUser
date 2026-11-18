@@ -49,6 +49,15 @@ public class RecordRepository {
         .toList();
   }
 
+  public Map<String, JsonNode> publicProgramOriginals() {
+    Map<String, JsonNode> originals = new HashMap<>();
+    for (String payload : mapper.findPublicProgramOriginals()) {
+      JsonNode original = parse(payload);
+      originals.put(original.path("id").asText(), original);
+    }
+    return originals;
+  }
+
   public int version(String table, String id, String owner) {
     Integer version = mapper.findVersion(new AggregateTable(table), id, owner);
     if (version == null) throw ApiException.missing();

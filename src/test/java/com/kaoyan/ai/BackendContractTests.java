@@ -334,6 +334,26 @@ class BackendContractTests {
     assertTrue(java.util.stream.StreamSupport.stream(recommendations.path("items").spliterator(), false)
         .anyMatch(row -> row.path("program").path("region").asText().equals("上海")));
     recommendations.path("items").forEach(row -> assertTrue(row.path("matchScore").isNull()));
+    JsonNode ranked = call(c, "POST", "/schools/recommendations",
+        obj("undergraduateMajor", "软件工程", "year", 2026, "regions", arr("江苏省"),
+            "difficulty", "hard", "estimatedScore", 330), null, 200).path("items");
+    assertEquals("reach", ranked.get(0).path("tier").asText());
+    ranked.forEach(row -> assertEquals("江苏", row.path("program").path("region").asText()));
+    JsonNode computerTechnology = java.util.stream.StreamSupport.stream(ranked.spliterator(), false)
+        .filter(row -> row.path("program").path("id").asText().equals("75000000-0000-4000-8000-000000000011"))
+        .findFirst().orElseThrow();
+    assertEquals("计算机技术", computerTechnology.path("program").path("major").asText());
+    assertEquals(337.5, computerTechnology.path("referenceScore").asDouble());
+    assertEquals(-7.5, computerTechnology.path("scoreGap").asDouble());
+    assertEquals("reach", computerTechnology.path("tier").asText());
+    assertEquals(2024, computerTechnology.path("scoreHistory").get(0).path("year").asInt());
+    assertEquals(2025, computerTechnology.path("scoreHistory").get(1).path("year").asInt());
+    assertTrue(computerTechnology.path("scoreHistory").get(0).path("sources").size() > 0);
+    JsonNode explicitTarget = call(c, "POST", "/schools/recommendations",
+        obj("undergraduateMajor", "会计学", "targetMajor", "085404", "year", 2026,
+            "regions", arr("江苏"), "difficulty", "medium", "estimatedScore", 350), null, 200).path("items");
+    assertTrue(explicitTarget.size() > 0);
+    explicitTarget.forEach(row -> assertTrue(row.path("program").path("programName").asText().startsWith("085404 ")));
     call(
         c,
         "POST",
@@ -530,22 +550,33 @@ class BackendContractTests {
             q.get("versionId"),
             "answer",
             obj("kind", "singleChoice", "optionId", "A"),
+            "durationMs",
+            1500,
+            "changed",
+            true,
             "requestId",
             key);
     JsonNode a = call(c, "POST", "/practice/sessions/" + sid + "/attempts", body, key, 201);
     assertFalse(a.path("correct").asBoolean());
     assertEquals("B", a.path("correctAnswer").path("optionId").asText());
+    assertEquals(1, a.path("seq").asInt());
+    assertEquals(1, a.path("attemptNo").asInt());
+    assertEquals(1500, a.path("durationMs").asInt());
+    assertTrue(a.path("changed").asBoolean());
+    assertEquals(KID, a.path("knowledgeId").asText());
     assertEquals(a, call(c, "POST", "/practice/sessions/" + sid + "/attempts", body, key, 201));
     ((ObjectNode) body.get("answer")).put("optionId", "B");
     call(c, "POST", "/practice/sessions/" + sid + "/attempts", body, key, 409);
     body.put("requestId", id());
-    call(
+    JsonNode second = call(
         c,
         "POST",
         "/practice/sessions/" + sid + "/attempts",
         body,
         body.path("requestId").asText(),
         201);
+    assertEquals(2, second.path("seq").asInt());
+    assertEquals(2, second.path("attemptNo").asInt());
     JsonNode wrong = call(c, "GET", "/practice/wrong-items?subjectId=" + MATH, null, null, 200);
     assertTrue(wrong.path("total").asInt() > 0);
     call(
@@ -566,13 +597,28 @@ class BackendContractTests {
         null,
         null,
         200);
-    call(
+    JsonNode legacyProgress = call(
         c,
         "GET",
         "/practice/knowledge-progress?subjectId=" + MATH + "&timeRange=all",
         null,
         null,
         200);
+    for (JsonNode item : legacyProgress.path("items"))
+      assertEquals(Set.of("knowledgeId", "attemptCount", "correctCount", "mastery"),
+          MAPPER.convertValue(item, Map.class).keySet());
+    JsonNode estimate = call(c, "GET", "/analytics/mastery-estimates?subjectId=" + MATH,
+        null, null, 200).path("items").path(0);
+    assertEquals("rule", estimate.path("source").asText());
+    assertTrue(estimate.path("confidence").isNull());
+    assertTrue(estimate.path("stddev").isNull());
+    assertTrue(estimate.path("weight").isNull());
+    assertTrue(estimate.path("mastery").isNumber());
+    JsonNode recommendation = call(c, "GET", "/analytics/recommendations?subjectId=" + MATH,
+        null, null, 200).path("items").path(0);
+    assertEquals("bandit", recommendation.path("source").asText());
+    assertEquals("RECENT_ERRORS", recommendation.path("reason").path("code").asText());
+    assertTrue(recommendation.hasNonNull("modelVersion"));
   }
 
   @Test
@@ -643,7 +689,8 @@ class BackendContractTests {
     String url = "/mock-exams/sessions/" + sid + "/answers/" + q.path("id").asText();
     String key = id();
     ObjectNode body =
-        obj("answer", obj("kind", "singleChoice", "optionId", "B"), "version", 0, "requestId", key);
+        obj("answer", obj("kind", "singleChoice", "optionId", "B"), "version", 0, "requestId", key,
+            "durationMs", 1200);
     call(c, "PUT", url, body, key, 200);
     call(c, "PUT", url, body, key, 200);
     String badKey = id();
@@ -652,6 +699,11 @@ class BackendContractTests {
     call(c, "PUT", url, bad, badKey, 409);
     JsonNode resumed = call(c, "GET", "/mock-exams/sessions/" + sid, null, null, 200);
     assertEquals(1, resumed.path("answers").size());
+    String skippedId = s.path("questions").path(1).path("id").asText();
+    String skipKey = id();
+    call(c, "PUT", "/mock-exams/sessions/" + sid + "/answers/" + skippedId,
+        obj("answer", null, "status", "skipped", "version", 0, "requestId", skipKey), skipKey, 200);
+    resumed = call(c, "GET", "/mock-exams/sessions/" + sid, null, null, 200);
     JsonNode submit =
         write(
             c,
@@ -667,6 +719,35 @@ class BackendContractTests {
     call(c, "PUT", url, bad, badKey, 409);
     JsonNode scored = job(c, submit, true).get("result");
     assertEquals(5, scored.path("totalScore").asDouble());
+    assertEquals(q.path("id"), scored.path("dimensions").path(0).path("questionId"));
+    JsonNode answers = call(c, "GET", "/mock-exams/sessions/" + sid, null, null, 200).path("answers");
+    assertEquals(3, answers.size());
+    assertEquals(q.path("versionId"), answers.path(0).path("questionVersionId"));
+    assertEquals(q.path("knowledgeId"), answers.path(0).path("knowledgeId"));
+    assertTrue(answers.path(0).path("correct").asBoolean());
+    assertEquals(5, answers.path(0).path("score").asDouble());
+    assertEquals(1200, answers.path(0).path("durationMs").asInt());
+    assertEquals("skipped", answers.path(1).path("status").asText());
+    assertEquals("unanswered", answers.path(2).path("status").asText());
+    assertTrue(answers.path(2).path("correct").isNull());
+    String export = "/analytics/training-sequence?subjectId=" + MATH + "&pageSize=100";
+    JsonNode batch = call(c, "GET", export, null, null, 200);
+    assertEquals(batch, call(c, "GET", export + "&asOf=" + batch.path("asOf").asText(), null, null, 200));
+    int examRows = 0;
+    for (JsonNode event : batch.path("items")) {
+      assertFalse(event.has("answer"));
+      assertFalse(event.has("correctAnswer"));
+      assertFalse(event.has("explanation"));
+      assertEquals(64, event.path("userId").asText().length());
+      if (sid.equals(event.path("sessionId").asText())) {
+        assertEquals("exam", event.path("source").asText());
+        assertEquals("answered".equals(event.path("status").asText()), event.path("correct").isBoolean());
+        examRows++;
+      }
+    }
+    assertEquals(3, examRows);
+    JsonNode otherBatch = call(login("student2"), "GET", export, null, null, 200);
+    for (JsonNode event : otherBatch.path("items")) assertNotEquals(sid, event.path("sessionId").asText());
     call(c, "GET", "/mock-exams/sessions/" + sid + "/result", null, null, 200);
     call(
         c,

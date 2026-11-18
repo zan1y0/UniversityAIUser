@@ -325,7 +325,19 @@ test('五个择校板块按条件提交并在表单下方显示各自的结果',
   const mock = await mockContract(page, {
     schoolFixtures: {
       op019: { items: [first, second], page: 1, pageSize: 100, total: 2 },
-      op020: { items: [{ program: first, matchScore: 72, reasons: ['测试匹配'], risks: [] }] },
+      op020: {
+        items: [{
+          program: first,
+          matchScore: 72,
+          tier: 'match',
+          studyMode: '全日制',
+          referenceScore: 344,
+          scoreGap: 6,
+          scoreHistory: [{ year: 2026, scoreLine: 344, sources: first.sources }],
+          reasons: ['测试匹配'],
+          risks: [],
+        }],
+      },
       op021: facts,
       op022: {
         year: 2027,
@@ -348,12 +360,15 @@ test('五个择校板块按条件提交并在表单下方显示各自的结果',
   await filters.getByLabel('招生年份').fill('2027');
   await filters.getByLabel('本科专业').fill('软件工程');
   await filters.getByLabel('意向地区').fill('上海、江苏');
-  await filters.getByLabel('参考总分').fill('350');
+  await filters.getByLabel('预估初试总分').fill('350');
   await filters.getByRole('button', { name: '查询', exact: true }).click();
   await expect(results.getByText('72 / 100')).toBeVisible();
+  await expect(results.getByText('分差 +6 分')).toBeVisible();
+  await results.getByText('查看复试线来源').click();
+  await expect(results.getByText('2026 年 · 344 分')).toBeVisible();
   expect(mock.seen.find((entry) => entry.id === 'op020')?.body.regions).toEqual(['上海', '江苏']);
   await filters.getByLabel('意向地区').clear();
-  await filters.getByLabel('参考总分').clear();
+  await filters.getByLabel('预估初试总分').clear();
   await filters.getByRole('button', { name: '查询', exact: true }).click();
   await expect(results.getByText('未计算', { exact: true })).toBeVisible();
   expect(mock.seen.filter((entry) => entry.id === 'op020').at(-1)?.body).toEqual({
