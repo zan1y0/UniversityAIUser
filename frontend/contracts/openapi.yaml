@@ -19417,7 +19417,8 @@ paths:
       tags:
       - M10 学习数据仪表盘
       summary: 推荐练习与依据
-      description: 返回本人学习数据的推理或降级结果。
+      description: 返回当前用户推荐，适配推理服务的 questionId/rank/ucbScore/confidence；中文理由保持既有 reason.message
+        结构。服务不可用时返回规则结果。
       security:
       - JwtCookie: []
       - BearerJwt: []
@@ -30174,6 +30175,19 @@ components:
           maxLength: 128
         reason:
           $ref: '#/components/schemas/RecommendationReason'
+        questionId:
+          type: string
+          format: uuid
+          description: 业务题目 ID；questionVersionId 保留实际练习版本。
+        rank:
+          type: integer
+          minimum: 1
+          maximum: 20
+        ucbScore:
+          anyOf:
+          - type: number
+          - type: 'null'
+          description: 推理服务返回的策略分数，规则降级时为 null。
       required:
       - questionVersionId
       - knowledgeId
@@ -30323,7 +30337,12 @@ components:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/MasteryEstimate'
+            $ref: '#/components/schemas/KnowledgeMasteryDetail'
+        algorithmVersion:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: 本次实际生效的算法版本；规则降级为 empirical-correct-rate-v1。
       required:
       - subjectId
       - asOf
@@ -30367,6 +30386,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/KnowledgeRecommendation'
+        algorithmVersion:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: 本次实际生效的算法版本；规则降级为 empirical-correct-rate-v1。
       required:
       - subjectId
       - asOf
@@ -30475,3 +30499,6 @@ components:
       - scoreLine
       - sources
       additionalProperties: false
+    KnowledgeMasteryDetail:
+      $ref: '#/components/schemas/MasteryEstimate'
+      description: 知识点掌握度扩展字段；兼容已发布的 MasteryEstimate。

@@ -2,11 +2,11 @@
   "version": "1.6.0",
   "paths": 128,
   "operations": 141,
-  "schemas": 335,
+  "schemas": 336,
   "examplesValidated": 1448,
   "negativeCases": 5,
   "businessModules": 11,
-  "sha256": "003c3104f526a0c4424fc28834b29e989a7ce1f83de34a47a8dc3f116b05f19e",
+  "sha256": "60c1a79f4ff6d6fd50c18ff87b22e11c80e31444f2a597cea931e382d33885cc",
   "status": "contract_validated_routes_matched",
   "moduleOperations": {
     "00 通用技术接口": 15,

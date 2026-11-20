@@ -1,12 +1,41 @@
 package com.kaoyan.ai.service;
 
+import static com.kaoyan.ai.common.Jsons.*;
+
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.kaoyan.ai.infrastructure.ai.MasteryPredictor;
 import java.util.*;
 import org.springframework.stereotype.Component;
 
 @Component
-public class RuleMasteryPredictor {
+public class RuleMasteryPredictor implements MasteryPredictor {
   public static final String VERSION = "empirical-correct-rate-v1";
+
+  @Override
+  public Optional<JsonNode> predict(JsonNode input) {
+    List<ObjectNode> sequence = new ArrayList<>();
+    for (JsonNode row : input.path("history")) {
+      JsonNode correct = row.path("correct");
+      if (!correct.isIntegralNumber() || (correct.asInt() != 0 && correct.asInt() != 1)) continue;
+      sequence.add(obj("knowledgeId", row.path("knowledgeId").asText("__unknown__"),
+          "correct", correct.asInt() == 1));
+    }
+    var evidence = summarize(sequence);
+    Set<String> ids = new TreeSet<>(evidence.keySet());
+    input.path("candidates").forEach(id -> ids.add(id.asText()));
+    var items = arr();
+    for (String id : ids) {
+      var observed = evidence.getOrDefault(id, new Evidence());
+      items.add(obj("knowledgeId", id, "mastery", observed.mastery(), "sampleCount", observed.count(),
+          "stddev", null, "weight", null, "source", "rule"));
+    }
+    return Optional.of(obj("modelVersion", VERSION, "knowledgeMastery", items,
+        "recommendedQuestions", arr()));
+  }
+
+  @Override public String version() { return VERSION; }
+  @Override public boolean enabled() { return true; }
 
   public Map<String, Evidence> summarize(List<ObjectNode> sequence) {
     Map<String, Evidence> result = new HashMap<>();

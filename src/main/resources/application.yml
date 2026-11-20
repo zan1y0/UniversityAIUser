@@ -119,7 +119,7 @@ app:
 ai:
   kt:
     enabled: ${AI_KT_ENABLED:false}
-    base-url: ${AI_KT_BASE_URL:}
+    base-url: ${AI_KT_BASE_URL:http://127.0.0.1:8000}
     timeout-ms: ${AI_KT_TIMEOUT_MS:800}
     model-version: ${AI_KT_MODEL_VERSION:kt-gkt-v1}
     previous-model-version: ${AI_KT_PREVIOUS_MODEL_VERSION:}

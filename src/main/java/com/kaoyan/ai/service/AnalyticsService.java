@@ -15,11 +15,14 @@ public class AnalyticsService {
   private final RecordRepository db;
   private final CatalogService catalog;
   private final AttemptMetadata metadata;
+  private final KnowledgeTracingService knowledgeTracing;
 
-  public AnalyticsService(RecordRepository db, CatalogService catalog, AttemptMetadata metadata) {
+  public AnalyticsService(RecordRepository db, CatalogService catalog, AttemptMetadata metadata,
+      KnowledgeTracingService knowledgeTracing) {
     this.db = db;
     this.catalog = catalog;
     this.metadata = metadata;
+    this.knowledgeTracing = knowledgeTracing;
   }
 
   private List<ObjectNode> events(String user) {
@@ -200,7 +203,7 @@ public class AnalyticsService {
                   "sampleCount",
                   selected.size()));
         }
-        yield obj(
+        ObjectNode radar = obj(
             "subjectId",
             c.q("subjectId"),
             "from",
@@ -211,6 +214,8 @@ public class AnalyticsService {
             items,
             "algorithmVersion",
             "empirical-correct-rate-v1");
+        knowledgeTracing.applyLegacy(user, c.q("subjectId"), from, to, op, radar);
+        yield radar;
       }
       case "op074" -> {
         LocalDate start = LocalDate.parse(c.q("weekStart"));

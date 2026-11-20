@@ -16,15 +16,17 @@ public class PracticeService {
   private final RecordRepository db;
   private final CatalogService catalog;
   private final AttemptMetadata metadata;
+  private final KnowledgeTracingService knowledgeTracing;
   private final com.kaoyan.ai.infrastructure.ai.ModelGateway model;
 
   public PracticeService(
       RecordRepository db, CatalogService catalog, AttemptMetadata metadata,
-      com.kaoyan.ai.infrastructure.ai.ModelGateway model) {
+      com.kaoyan.ai.infrastructure.ai.ModelGateway model, KnowledgeTracingService knowledgeTracing) {
     this.db = db;
     this.catalog = catalog;
     this.metadata = metadata;
     this.model = model;
+    this.knowledgeTracing = knowledgeTracing;
   }
 
   public void validateAnswer(JsonNode question, JsonNode answer) {
@@ -266,7 +268,7 @@ public class PracticeService {
                   "mastery",
                   n == 0 ? null : (double) ok / n));
         }
-        yield obj(
+        ObjectNode progress = obj(
             "subjectId",
             c.q("subjectId"),
             "timeRange",
@@ -275,6 +277,8 @@ public class PracticeService {
             items,
             "algorithmVersion",
             "empirical-correct-rate-v1");
+        knowledgeTracing.applyLegacy(user, c.q("subjectId"), since, today(), op, progress);
+        yield progress;
       }
       default -> throw new IllegalArgumentException(op);
     };

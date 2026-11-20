@@ -15,7 +15,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 @Component
 public class HttpMasteryPredictor implements MasteryPredictor, ApplicationRunner {
@@ -65,11 +65,16 @@ public class HttpMasteryPredictor implements MasteryPredictor, ApplicationRunner
   public Optional<JsonNode> predict(JsonNode input) {
     if (client == null) return Optional.empty();
     try {
-      JsonNode output = client.post().uri("/predict").contentType(MediaType.APPLICATION_JSON)
+      JsonNode output = client.post().uri("/v1/mastery").contentType(MediaType.APPLICATION_JSON)
           .body(input).retrieve().body(JsonNode.class);
       if (output != null && output.isObject() && version.equals(output.path("modelVersion").asText())
-          && output.path("items").isArray()) return Optional.of(output);
-    } catch (RestClientException e) {
+          && output.path("knowledgeMastery").isArray()
+          && output.path("recommendedQuestions").isArray()) return Optional.of(output);
+    } catch (RestClientResponseException e) {
+      if (e.getStatusCode().is4xxClientError())
+        LOG.warn("知识追踪请求被拒绝，请核对接口契约 modelVersion={} status={}", version, e.getStatusCode().value());
+      else LOG.debug("知识追踪服务异常 modelVersion={} status={}", version, e.getStatusCode().value());
+    } catch (RuntimeException e) {
       LOG.debug("知识追踪模型调用失败 modelVersion={} error={}", version, e.getClass().getSimpleName());
     }
     return Optional.empty();

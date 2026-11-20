@@ -616,7 +616,7 @@ class BackendContractTests {
     assertTrue(estimate.path("mastery").isNumber());
     JsonNode recommendation = call(c, "GET", "/analytics/recommendations?subjectId=" + MATH,
         null, null, 200).path("items").path(0);
-    assertEquals("bandit", recommendation.path("source").asText());
+    assertEquals("rule", recommendation.path("source").asText());
     assertEquals("RECENT_ERRORS", recommendation.path("reason").path("code").asText());
     assertTrue(recommendation.hasNonNull("modelVersion"));
   }
